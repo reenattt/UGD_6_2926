@@ -1,7 +1,6 @@
 import './ui/global.css';
 import { inter } from './ui/fonts';
 
-
 export default function RootLayout({
   children,
 }: {
