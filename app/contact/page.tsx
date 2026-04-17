@@ -5,49 +5,93 @@ import Navbar from "../ui/navbar";
 export default function Contact() {
   return (
     <main className="min-h-screen text-white relative overflow-hidden">
-      {/* BACKGROUND GRADIENT */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#1e3a8a] via-[#1e40af] to-[#020617]"></div>
-      {/* GLOW EFFECT KIRI */}
-      <div className="absolute top-[-150px] left-[-150px] w-[400px] h-[400px] bg-blue-400/20 rounded-full blur-[120px]"></div>
-      {/* GLOW EFFECT KANAN */}
-      <div className="absolute bottom-[-150px] right-[-150px] w-[400px] h-[400px] bg-orange-400/20 rounded-full blur-[120px]"></div>
-      {/* CONTENT */}
-      <div className="relative z-10">
 
+      {/* ===== BACKGROUND ===== */}
+      <div className="absolute inset-0 bg-[#1f2a5a]"></div>
+
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 900px 300px at center, rgba(96,165,250,0.35) 0%, rgba(31,42,90,0.9) 60%, rgba(31,42,90,1) 80%)",
+        }}
+      ></div>
 
       <Navbar />
 
-      <div className="flex flex-col items-center justify-center min-h-screen px-10 pt-24">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-10 pt-24">
 
-        <h1 className="text-4xl font-semibold mb-10 animate-fadeInUp">
+        {/* TITLE */}
+        <h1 className="text-4xl font-semibold mb-3 animate-fadeInUp">
           Contact <span className="text-orange-400 font-bold">Sky Link</span>
         </h1>
 
-        <div className="grid md:grid-cols-3 gap-8 w-full max-w-5xl">
+        <p className="text-gray-300 mb-10 animate-fadeInUp delay-1">
+          Kami siap membantu kebutuhan pengiriman Anda kapan saja
+        </p>
 
-          {/* CARD */}
-          {[
-            { icon: "📞", title: "Contact", value: "+62 123456789", delay: "delay-1" },
-            { icon: "💬", title: "WhatsApp", value: "+62 123456789", delay: "delay-2" },
-            { icon: "✉️", title: "Email", value: "skylink@gmail.com", delay: "delay-3" },
-          ].map((item) => (
-            <div
-              key={item.title}
-              className={`bg-blue-700/50 backdrop-blur-md p-6 rounded-xl text-center 
-              animate-fadeInUp ${item.delay}
-              transition duration-300 
-              hover:scale-105 hover:bg-blue-600/70 hover:shadow-2xl 
-              hover:shadow-[0_0_25px_rgba(255,165,0,0.4)] cursor-pointer`}
-            >
-              <div className="text-3xl mb-3">{item.icon}</div>
-              <h2 className="mb-2 font-medium">{item.title}</h2>
-              <p>{item.value}</p>
+        {/* CARDS */}
+        <div className="grid grid-cols-3 gap-8 w-full max-w-5xl">
+
+          {/* CARD 1 */}
+          <div className="bg-[#2b3c73] p-6 rounded-xl text-center 
+            animate-fadeInUp delay-1
+            transition duration-300 
+            hover:scale-105 hover:bg-[#324a8a] group cursor-pointer">
+
+            <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center 
+              rounded-full bg-white/20 text-xl
+              transition duration-300 group-hover:bg-orange-500 group-hover:shadow-lg group-hover:shadow-orange-500/30">
+              📞
             </div>
-          ))}
+
+            <h2 className="mb-1 font-semibold text-lg group-hover:text-orange-400 transition">
+              Contact
+            </h2>
+            <p className="text-sm text-gray-300">Hotline 24/7</p>
+            <p className="font-medium mt-1">+62 1234567890</p>
+          </div>
+
+          {/* CARD 2 */}
+          <div className="bg-[#2b3c73] p-6 rounded-xl text-center 
+            animate-fadeInUp delay-2
+            transition duration-300 
+            hover:scale-105 hover:bg-[#324a8a] group cursor-pointer">
+
+            <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center 
+              rounded-full bg-white/20 text-xl
+              transition duration-300 group-hover:bg-orange-500 group-hover:shadow-lg group-hover:shadow-orange-500/30">
+              💬
+            </div>
+
+            <h2 className="mb-1 font-semibold text-lg group-hover:text-orange-400 transition">
+              WhatsApp
+            </h2>
+            <p className="text-sm text-gray-300">Chat langsung</p>
+            <p className="font-medium mt-1">+62 1234567890</p>
+          </div>
+
+          {/* CARD 3 */}
+          <div className="bg-[#2b3c73] p-6 rounded-xl text-center 
+            animate-fadeInUp delay-3
+            transition duration-300 
+            hover:scale-105 hover:bg-[#324a8a] group cursor-pointer">
+
+            <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center 
+              rounded-full bg-white/20 text-xl
+              transition duration-300 group-hover:bg-orange-500 group-hover:shadow-lg group-hover:shadow-orange-500/30">
+              ✉️
+            </div>
+
+            <h2 className="mb-1 font-semibold text-lg group-hover:text-orange-400 transition">
+              Email
+            </h2>
+            <p className="text-sm text-gray-300">Kerja sama langsung</p>
+            <p className="font-medium mt-1">skylink@gmail.com</p>
+          </div>
 
         </div>
 
-      </div>
       </div>
 
     </main>

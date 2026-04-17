@@ -6,6 +6,7 @@ import { useState } from "react";
 export default function Manifest() {
 
   const [showForm, setShowForm] = useState(false);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
   const [shipments, setShipments] = useState([
     {
@@ -39,12 +40,13 @@ export default function Manifest() {
 
   const statusList = ["Received", "Sortation", "Loaded", "Departed", "Arrived", "Delayed"];
 
-  // 🔥 GENERATE AWB OTOMATIS
+  // GENERATE AWB
   const generateAWB = () => {
     const base = 1234 + shipments.length;
     return `AWB-2026-${String(base).padStart(6, "0")}`;
   };
 
+  // CREATE
   const handleSubmit = () => {
     const newData = {
       awb: generateAWB(),
@@ -65,6 +67,7 @@ export default function Manifest() {
     setShowForm(false);
   };
 
+  // UPDATE STATUS
   const handleStatusChange = (index: number, newStatus: string) => {
     const updated = [...shipments];
     updated[index].status = newStatus;
@@ -169,7 +172,7 @@ export default function Manifest() {
                 <td>{item.commodity}</td>
                 <td>{item.weight}</td>
 
-                {/* STATUS BADGE */}
+                {/* STATUS */}
                 <td>
                   {editingIndex === index ? (
                     <select
@@ -206,7 +209,9 @@ export default function Manifest() {
 
                 <td>{item.time}</td>
 
-                <td>
+                {/* ACTION */}
+                <td className="flex gap-2">
+
                   {editingIndex === index ? (
                     <button
                       onClick={() => setEditingIndex(null)}
@@ -215,13 +220,23 @@ export default function Manifest() {
                       Cancel
                     </button>
                   ) : (
-                    <button
-                      onClick={() => setEditingIndex(index)}
-                      className="bg-yellow-400 px-3 py-1 rounded text-sm"
-                    >
-                      Update
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setEditingIndex(index)}
+                        className="bg-yellow-400 px-3 py-1 rounded text-sm"
+                      >
+                        Update
+                      </button>
+
+                      <button
+                        onClick={() => setDeleteIndex(index)}
+                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                      >
+                        Delete
+                      </button>
+                    </>
                   )}
+
                 </td>
 
               </tr>
@@ -231,6 +246,47 @@ export default function Manifest() {
         </table>
 
       </div>
+
+      {/* ===== MODAL DELETE ===== */}
+      {deleteIndex !== null && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+
+          <div className="bg-white p-6 rounded shadow w-[350px] text-center">
+
+            <h2 className="text-lg font-semibold mb-3">
+              Konfirmasi Hapus
+            </h2>
+
+            <p className="text-gray-500 mb-5">
+              Apakah kamu yakin ingin menghapus shipment ini?
+            </p>
+
+            <div className="flex justify-center gap-4">
+
+              <button
+                onClick={() => setDeleteIndex(null)}
+                className="px-4 py-2 bg-gray-400 text-white rounded"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => {
+                  const updated = shipments.filter((_, i) => i !== deleteIndex);
+                  setShipments(updated);
+                  setDeleteIndex(null);
+                }}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded"
+              >
+                Delete
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
 
     </DashboardLayout>
   );
