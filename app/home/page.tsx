@@ -53,7 +53,7 @@ export default function Page() {
       </video>
 
       {/* OVERLAY */}
-      <div className="absolute inset-0 bg-blue-950/80"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-950/90 via-blue-900/70 via-blue-800/40 to-transparent"></div>
 
       {/* HERO */}
       <div className="relative z-10 flex items-center justify-between h-full px-20">

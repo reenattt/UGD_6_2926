@@ -4,14 +4,23 @@ import Navbar from "../ui/navbar";
 
 export default function Contact() {
   return (
-    <main className="min-h-screen bg-[#1e3a8a] text-white">
+    <main className="min-h-screen text-white relative overflow-hidden">
+      {/* BACKGROUND GRADIENT */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#1e3a8a] via-[#1e40af] to-[#020617]"></div>
+      {/* GLOW EFFECT KIRI */}
+      <div className="absolute top-[-150px] left-[-150px] w-[400px] h-[400px] bg-blue-400/20 rounded-full blur-[120px]"></div>
+      {/* GLOW EFFECT KANAN */}
+      <div className="absolute bottom-[-150px] right-[-150px] w-[400px] h-[400px] bg-orange-400/20 rounded-full blur-[120px]"></div>
+      {/* CONTENT */}
+      <div className="relative z-10">
+
 
       <Navbar />
 
       <div className="flex flex-col items-center justify-center min-h-screen px-10 pt-24">
 
         <h1 className="text-4xl font-semibold mb-10 animate-fadeInUp">
-          Contact <span className="text-orange-400">Sky Link</span>
+          Contact <span className="text-orange-400 font-bold">Sky Link</span>
         </h1>
 
         <div className="grid md:grid-cols-3 gap-8 w-full max-w-5xl">
@@ -38,6 +47,7 @@ export default function Contact() {
 
         </div>
 
+      </div>
       </div>
 
     </main>
