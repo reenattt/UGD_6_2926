@@ -7,12 +7,12 @@ const sql = postgres(process.env.POSTGRES_URL!, {
 // ================= CUSTOMERS =================
 async function seedCustomers() {
 
-await sql`DROP TABLE IF EXISTS shipment_items`;
-await sql`DROP TABLE IF EXISTS tracking_logs`;
-await sql`DROP TABLE IF EXISTS shipment_details`;
-await sql`DROP TABLE IF EXISTS shipments`;
-await sql`DROP TABLE IF EXISTS items`;
-await sql`DROP TABLE IF EXISTS customers`;
+await sql`DROP TABLE IF EXISTS shipment_items CASCADE`;
+await sql`DROP TABLE IF EXISTS tracking_logs CASCADE`;
+await sql`DROP TABLE IF EXISTS shipment_details CASCADE`;
+await sql`DROP TABLE IF EXISTS shipments CASCADE`;
+await sql`DROP TABLE IF EXISTS items CASCADE`;
+await sql`DROP TABLE IF EXISTS customers CASCADE`;
 
   await sql`
     CREATE TABLE customers (
