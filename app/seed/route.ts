@@ -91,6 +91,33 @@ async function seedShipments() {
   `;
 }
 
+// shipments detail 
+async function seedShipmentDetails() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS shipment_details (
+      id SERIAL PRIMARY KEY,
+      shipment_id INT UNIQUE REFERENCES shipments(id),
+      insurance TEXT,
+      note TEXT
+    );
+  `;
+
+  await sql`
+    INSERT INTO shipment_details (shipment_id, insurance, note)
+    VALUES
+      (1, 'Yes', 'Fragile item'),
+      (2, 'No', 'Handle with care'),
+      (3, 'Yes', 'Electronic goods'),
+      (4, 'No', 'Documents only'),
+      (5, 'Yes', 'Express delivery'),
+      (6, 'No', 'Standard shipment'),
+      (7, 'Yes', 'Medical supplies'),
+      (8, 'No', 'Food package'),
+      (9, 'Yes', 'Luxury goods'),
+      (10, 'No', 'Regular shipment');
+  `;
+}
+
 // ================= TRACKING LOGS =================
 async function seedTrackingLogs() {
 
@@ -146,7 +173,6 @@ async function seedShipmentItems() {
 
 // ================= GET =================
 export async function GET() {
-
   try {
 
     await seedCustomers();
@@ -154,6 +180,8 @@ export async function GET() {
     await seedItems();
 
     await seedShipments();
+
+    await seedShipmentDetails();
 
     await seedTrackingLogs();
 
@@ -170,5 +198,4 @@ export async function GET() {
     return Response.json({ error }, { status: 500 });
 
   }
-
 }
