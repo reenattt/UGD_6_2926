@@ -143,16 +143,27 @@ async function seedShipmentItems() {
 
 export async function GET() {
   try {
+
+    // urutan penting
     await seedCustomers();
-    await seedShipments();
-    await seedTrackingLogs();
+
     await seedItems();
+
+    await seedShipments();
+
+    await seedTrackingLogs();
+
     await seedShipmentItems();
 
     return Response.json({
       message: "Database seeded successfully",
     });
+
   } catch (error) {
-    return Response.json({ error });
+
+    console.log(error);
+
+    return Response.json({ error }, { status: 500 });
+
   }
 }
