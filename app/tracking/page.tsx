@@ -7,7 +7,7 @@ export default function Tracking() {
   const [awb, setAwb] = useState("");
   const [status, setStatus] = useState<"idle" | "found" | "notfound">("idle");
 
-  const validAWB = ["AWB-001"];
+  const validAWB = ["AWB-001", "AWB-002", "AWB-003"];
 
   const handleTrack = () => {
     if (validAWB.includes(awb)) {
