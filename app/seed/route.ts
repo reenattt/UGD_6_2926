@@ -1,16 +1,21 @@
-// ini kode biar bisa conect ke neon 
 import postgres from "postgres";
 
 const sql = postgres(process.env.POSTGRES_URL!, {
   ssl: "require",
 });
 
-// ini adalah tabel customer 
-// SERIAL PRIMARY KEY itu biar kode otomatios dan unik 
+// ================= CUSTOMERS =================
 async function seedCustomers() {
+
+  await sql`DROP TABLE IF EXISTS shipment_items`;
+  await sql`DROP TABLE IF EXISTS tracking_logs`;
+  await sql`DROP TABLE IF EXISTS shipments`;
+  await sql`DROP TABLE IF EXISTS items`;
+  await sql`DROP TABLE IF EXISTS customers`;
+
   await sql`
-    CREATE TABLE IF NOT EXISTS customers (
-      id SERIAL PRIMARY KEY, 
+    CREATE TABLE customers (
+      id SERIAL PRIMARY KEY,
       name TEXT,
       city TEXT
     );
@@ -32,12 +37,37 @@ async function seedCustomers() {
   `;
 }
 
-// ini shipments 
-// customer_id INT REFERENCES customers(id) 
-// ini artinya shipments terhubung ke cus`tomers dengan customer_id sebagai foreign key yang merujuk ke id di tabel customers              
-async function seedShipments() {
+// ================= ITEMS =================
+async function seedItems() {
+
   await sql`
-    CREATE TABLE IF NOT EXISTS shipments (
+    CREATE TABLE items (
+      id SERIAL PRIMARY KEY,
+      item_name TEXT
+    );
+  `;
+
+  await sql`
+    INSERT INTO items (item_name)
+    VALUES
+      ('Laptop'),
+      ('Phone'),
+      ('Shoes'),
+      ('Clothes'),
+      ('Books'),
+      ('Medicine'),
+      ('Food'),
+      ('Camera'),
+      ('Watch'),
+      ('Bag');
+  `;
+}
+
+// ================= SHIPMENTS =================
+async function seedShipments() {
+
+  await sql`
+    CREATE TABLE shipments (
       id SERIAL PRIMARY KEY,
       awb TEXT,
       destination TEXT,
@@ -61,13 +91,11 @@ async function seedShipments() {
   `;
 }
 
-
-// tracking logs
-// shipments → tracking_logs
-// 1 shipment punya banyak tracking.
+// ================= TRACKING LOGS =================
 async function seedTrackingLogs() {
+
   await sql`
-    CREATE TABLE IF NOT EXISTS tracking_logs (
+    CREATE TABLE tracking_logs (
       id SERIAL PRIMARY KEY,
       shipment_id INT REFERENCES shipments(id),
       status TEXT
@@ -90,36 +118,11 @@ async function seedTrackingLogs() {
   `;
 }
 
-// items
-async function seedItems() {
-  await sql`
-    CREATE TABLE IF NOT EXISTS items (
-      id SERIAL PRIMARY KEY,
-      item_name TEXT
-    );
-  `;
-
-  await sql`
-    INSERT INTO items (item_name)
-    VALUES
-      ('Laptop'),
-      ('Phone'),
-      ('Shoes'),
-      ('Clothes'),
-      ('Books'),
-      ('Medicine'),
-      ('Food'),
-      ('Camera'),
-      ('Watch'),
-      ('Bag');
-  `;
-}
-
-// junction table 
-//shipment_items adalah junction table 
+// ================= JUNCTION TABLE =================
 async function seedShipmentItems() {
+
   await sql`
-    CREATE TABLE IF NOT EXISTS shipment_items (
+    CREATE TABLE shipment_items (
       shipment_id INT REFERENCES shipments(id),
       item_id INT REFERENCES items(id)
     );
@@ -141,10 +144,11 @@ async function seedShipmentItems() {
   `;
 }
 
+// ================= GET =================
 export async function GET() {
+
   try {
 
-    // urutan penting
     await seedCustomers();
 
     await seedItems();
@@ -166,4 +170,5 @@ export async function GET() {
     return Response.json({ error }, { status: 500 });
 
   }
+
 }
