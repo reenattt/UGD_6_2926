@@ -12,7 +12,7 @@ await sql`DROP TABLE IF EXISTS tracking_logs CASCADE`;
 await sql`DROP TABLE IF EXISTS shipment_details CASCADE`;
 await sql`DROP TABLE IF EXISTS shipments CASCADE`;
 await sql`DROP TABLE IF EXISTS items CASCADE`;
-await sql`DROP TABLE IF EXISTS customers CASCADE`;
+await sql`DROP TABLE IF EXISTS customers CASCADE`; 
 
   await sql`
     CREATE TABLE customers (
@@ -44,23 +44,24 @@ async function seedItems() {
   await sql`
     CREATE TABLE items (
       id SERIAL PRIMARY KEY,
-      item_name TEXT
+      item_name TEXT,
+      weight INT
     );
   `;
 
   await sql`
-    INSERT INTO items (item_name)
+    INSERT INTO items (item_name, weight)
     VALUES
-      ('Laptop'),
-      ('Phone'),
-      ('Shoes'),
-      ('Clothes'),
-      ('Books'),
-      ('Medicine'),
-      ('Food'),
-      ('Camera'),
-      ('Watch'),
-      ('Bag');
+      ('Laptop', 5),
+      ('Phone', 1),
+      ('Shoes', 2),
+      ('Clothes', 3),
+      ('Books', 4),
+      ('Medicine', 1),
+      ('Food', 6),
+      ('Camera', 2),
+      ('Watch', 1),
+      ('Bag', 3);
   `;
 }
 
@@ -172,6 +173,33 @@ async function seedShipmentItems() {
   `;
 }
 
+// ================= SEED Shipping Rates =================
+async function seedShippingRates() {
+
+  await sql`
+    CREATE TABLE shipping_rates (
+      id SERIAL PRIMARY KEY,
+      destination TEXT,
+      price INT
+    );
+  `;
+
+  await sql`
+    INSERT INTO shipping_rates (destination, price)
+    VALUES
+      ('CGK', 50000),
+      ('SIN', 120000),
+      ('KUL', 100000),
+      ('BKK', 140000),
+      ('HKG', 180000),
+      ('DPS', 70000),
+      ('SUB', 60000),
+      ('JOG', 55000),
+      ('PKU', 65000),
+      ('BDO', 50000);
+  `;
+}
+
 // ================= GET =================
 export async function GET() {
   try {
@@ -179,6 +207,8 @@ export async function GET() {
     await seedCustomers();
 
     await seedItems();
+
+    await seedShippingRates();
 
     await seedShipments();
 
