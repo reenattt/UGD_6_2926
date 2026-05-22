@@ -1,6 +1,8 @@
 "use client";
 
 import DashboardLayout from "../ui/layout-dashboard";
+import Search from "../ui/search";
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,7 +13,7 @@ import {
 } from "chart.js";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 // register chart
 ChartJS.register(
@@ -31,6 +33,12 @@ const Bar = dynamic(
 export default function Dashboard() {
 
   const [chartData, setChartData] = useState<any>(null);
+
+  const [search, setSearch] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const shipmentsPerPage = 3;
 
   useEffect(() => {
 
@@ -70,6 +78,80 @@ export default function Dashboard() {
       },
     },
   };
+
+  // ================= SHIPMENT DATA =================
+
+  const shipments = [
+
+    {
+      awb: "AWB-001",
+      status: "Departed",
+      destination: "CGK",
+      time: "08:30",
+      color: "text-blue-500",
+    },
+
+    {
+      awb: "AWB-002",
+      status: "Loaded",
+      destination: "SIN",
+      time: "09:15",
+      color: "text-green-500",
+    },
+
+    {
+      awb: "AWB-003",
+      status: "Sortation",
+      destination: "KUL",
+      time: "10:00",
+      color: "text-yellow-500",
+    },
+
+    {
+      awb: "AWB-004",
+      status: "Arrived",
+      destination: "HKG",
+      time: "07:45",
+      color: "text-green-600",
+    },
+
+    {
+      awb: "AWB-005",
+      status: "Delayed",
+      destination: "BKK",
+      time: "11:30",
+      color: "text-red-500",
+    },
+
+  ];
+
+  // ================= SEARCH =================
+
+  const filteredShipments = shipments.filter((item) =>
+
+    item.awb.toLowerCase().includes(search.toLowerCase()) ||
+
+    item.destination.toLowerCase().includes(search.toLowerCase()) ||
+
+    item.status.toLowerCase().includes(search.toLowerCase())
+
+  );
+
+  // ================= PAGINATION =================
+
+  const indexOfLastShipment = currentPage * shipmentsPerPage;
+
+  const indexOfFirstShipment =
+    indexOfLastShipment - shipmentsPerPage;
+
+  const currentShipments = filteredShipments.slice(
+    indexOfFirstShipment,
+    indexOfLastShipment
+  );
+
+  const totalPages = Math.ceil(
+    filteredShipments.length / shipmentsPerPage
+  );
 
   return (
     <DashboardLayout>
@@ -152,9 +234,13 @@ export default function Dashboard() {
           Weekly Shipments
         </h2>
 
-        {chartData && (
-          <Bar data={chartData} options={options} />
-        )}
+        <Suspense fallback={<p>Loading Chart...</p>}>
+
+          {chartData && (
+            <Bar data={chartData} options={options} />
+          )}
+
+        </Suspense>
 
       </div>
 
@@ -169,82 +255,97 @@ export default function Dashboard() {
           </h2>
 
           <span className="text-sm text-gray-400">
-            5 entries
+            {filteredShipments.length} entries
           </span>
 
         </div>
 
+        {/* ================= SEARCH ================= */}
+
+        <Search
+          search={search}
+          setSearch={setSearch}
+        />
+
+        {/* ================= TABLE ================= */}
+
         <table className="w-full text-sm">
 
           <thead className="text-gray-400 border-b">
+
             <tr>
               <th className="text-left p-2">AWB</th>
               <th className="text-left p-2">Status</th>
               <th className="text-left p-2">Destination</th>
               <th className="text-left p-2">Time</th>
             </tr>
+
           </thead>
 
           <tbody>
 
-            <tr className="border-b">
-              <td className="p-2">AWB-001</td>
-              <td>
-                <span className="text-blue-500">
-                  Departed
-                </span>
-              </td>
-              <td>CGK</td>
-              <td>08:30</td>
-            </tr>
+            {currentShipments.map((item, index) => (
 
-            <tr className="border-b">
-              <td className="p-2">AWB-002</td>
-              <td>
-                <span className="text-green-500">
-                  Loaded
-                </span>
-              </td>
-              <td>SIN</td>
-              <td>09:15</td>
-            </tr>
+              <tr
+                key={index}
+                className="border-b"
+              >
 
-            <tr className="border-b">
-              <td className="p-2">AWB-003</td>
-              <td>
-                <span className="text-yellow-500">
-                  Sortation
-                </span>
-              </td>
-              <td>KUL</td>
-              <td>10:00</td>
-            </tr>
+                <td className="p-2">
+                  {item.awb}
+                </td>
 
-            <tr className="border-b">
-              <td className="p-2">AWB-004</td>
-              <td>
-                <span className="text-green-600">
-                  Arrived
-                </span>
-              </td>
-              <td>HKG</td>
-              <td>07:45</td>
-            </tr>
+                <td>
+                  <span className={item.color}>
+                    {item.status}
+                  </span>
+                </td>
 
-            <tr>
-              <td className="p-2">AWB-005</td>
-              <td>
-                <span className="text-red-500">
-                  Delayed
-                </span>
-              </td>
-              <td>BKK</td>
-              <td>11:30</td>
-            </tr>
+                <td>
+                  {item.destination}
+                </td>
+
+                <td>
+                  {item.time}
+                </td>
+
+              </tr>
+
+            ))}
 
           </tbody>
 
         </table>
+
+        {/* ================= PAGINATION ================= */}
+
+        <div className="flex justify-end gap-2 mt-4">
+
+          <button
+            onClick={() =>
+              setCurrentPage(currentPage - 1)
+            }
+            disabled={currentPage === 1}
+            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+          >
+            Prev
+          </button>
+
+          <span className="px-3 py-1">
+            {currentPage} / {totalPages}
+          </span>
+
+          <button
+            onClick={() =>
+              setCurrentPage(currentPage + 1)
+            }
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+          >
+            Next
+          </button>
+
+        </div>
 
       </div>
 
