@@ -1,21 +1,23 @@
 import Image from 'next/image';
 import { lusitana } from '@/app/ui/fonts';
-import {
-  CustomersTableType,
-  FormattedCustomersTable,
-} from '@/app/lib/definitions';
 
 export default async function CustomersTable({
   customers,
 }: {
-  customers: FormattedCustomersTable[];
+  customers: any[];
 }) {
   return (
     <div className="w-full">
 
-      <h1 className={`${lusitana.className} mb-8 text-xl md:text-2xl`}>
+      {/* TITLE */}
+
+      <h1
+        className={`${lusitana.className} mb-8 text-xl md:text-2xl`}
+      >
         Customers
       </h1>
+
+      {/* TABLE */}
 
       <div className="mt-6 flow-root">
 
@@ -25,7 +27,7 @@ export default async function CustomersTable({
 
             <div className="overflow-hidden rounded-md bg-gray-50 p-2 md:pt-0">
 
-              {/* MOBILE VIEW */}
+              {/* MOBILE */}
 
               <div className="md:hidden">
 
@@ -70,7 +72,9 @@ export default async function CustomersTable({
 
                       <div className="flex w-1/2 flex-col">
 
-                        <p className="text-xs">Pending</p>
+                        <p className="text-xs">
+                          Pending
+                        </p>
 
                         <p className="font-medium">
                           {customer.total_pending}
@@ -80,7 +84,9 @@ export default async function CustomersTable({
 
                       <div className="flex w-1/2 flex-col">
 
-                        <p className="text-xs">Paid</p>
+                        <p className="text-xs">
+                          Paid
+                        </p>
 
                         <p className="font-medium">
                           {customer.total_paid}
@@ -104,7 +110,7 @@ export default async function CustomersTable({
 
               </div>
 
-              {/* DESKTOP VIEW */}
+              {/* DESKTOP */}
 
               <table className="hidden min-w-full rounded-md text-gray-900 md:table">
 
@@ -112,38 +118,23 @@ export default async function CustomersTable({
 
                   <tr>
 
-                    <th
-                      scope="col"
-                      className="px-4 py-5 font-medium sm:pl-6"
-                    >
+                    <th className="px-4 py-5 font-medium sm:pl-6">
                       Name
                     </th>
 
-                    <th
-                      scope="col"
-                      className="px-3 py-5 font-medium"
-                    >
+                    <th className="px-3 py-5 font-medium">
                       Email
                     </th>
 
-                    <th
-                      scope="col"
-                      className="px-3 py-5 font-medium"
-                    >
+                    <th className="px-3 py-5 font-medium">
                       Total Invoices
                     </th>
 
-                    <th
-                      scope="col"
-                      className="px-3 py-5 font-medium"
-                    >
+                    <th className="px-3 py-5 font-medium">
                       Total Pending
                     </th>
 
-                    <th
-                      scope="col"
-                      className="px-4 py-5 font-medium"
-                    >
+                    <th className="px-4 py-5 font-medium">
                       Total Paid
                     </th>
 
