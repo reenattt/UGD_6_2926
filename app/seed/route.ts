@@ -7,12 +7,14 @@ const sql = postgres(process.env.POSTGRES_URL!, {
 // ================= CUSTOMERS =================
 async function seedCustomers() {
 
-await sql`DROP TABLE IF EXISTS shipment_items CASCADE`;
-await sql`DROP TABLE IF EXISTS tracking_logs CASCADE`;
-await sql`DROP TABLE IF EXISTS shipment_details CASCADE`;
-await sql`DROP TABLE IF EXISTS shipments CASCADE`;
-await sql`DROP TABLE IF EXISTS items CASCADE`;
-await sql`DROP TABLE IF EXISTS customers CASCADE`; 
+  await sql`DROP TABLE IF EXISTS shipment_items CASCADE`;
+  await sql`DROP TABLE IF EXISTS tracking_logs CASCADE`;
+  await sql`DROP TABLE IF EXISTS shipment_details CASCADE`;
+  await sql`DROP TABLE IF EXISTS shipping_rates CASCADE`;
+  await sql`DROP TABLE IF EXISTS shipments CASCADE`;
+  await sql`DROP TABLE IF EXISTS vehicles CASCADE`;
+  await sql`DROP TABLE IF EXISTS items CASCADE`;
+  await sql`DROP TABLE IF EXISTS customers CASCADE`;
 
   await sql`
     CREATE TABLE customers (
@@ -65,115 +67,63 @@ async function seedItems() {
   `;
 }
 
-// ================= SHIPMENTS =================
-async function seedShipments() {
+// ================= VEHICLES =================
+async function seedVehicles() {
 
   await sql`
-    CREATE TABLE shipments (
+    CREATE TABLE vehicles (
       id SERIAL PRIMARY KEY,
-      awb TEXT,
-      destination TEXT,
-      customer_id INT REFERENCES customers(id)
+
+      vehicle_name TEXT,
+
+      vehicle_type TEXT,
+
+      plate_number TEXT,
+
+      capacity INT,
+
+      vehicle_status TEXT
     );
   `;
 
   await sql`
-    INSERT INTO shipments (awb, destination, customer_id)
-    VALUES
-      ('AWB001', 'CGK', 1),
-      ('AWB002', 'SIN', 1),
-      ('AWB003', 'KUL', 2),
-      ('AWB004', 'BKK', 3),
-      ('AWB005', 'HKG', 4),
-      ('AWB006', 'DPS', 5),
-      ('AWB007', 'SUB', 6),
-      ('AWB008', 'JOG', 7),
-      ('AWB009', 'PKU', 8),
-      ('AWB010', 'BDO', 9);
-  `;
-}
+    INSERT INTO vehicles (
+      vehicle_name,
+      vehicle_type,
+      plate_number,
+      capacity,
+      vehicle_status
+    )
 
-// shipments detail 
-async function seedShipmentDetails() {
-  await sql`
-    CREATE TABLE IF NOT EXISTS shipment_details (
-      id SERIAL PRIMARY KEY,
-      shipment_id INT UNIQUE REFERENCES shipments(id),
-      insurance TEXT,
-      note TEXT
+    VALUES
+
+    (
+      'Truck Jakarta',
+      'Truck',
+      'B 1234 CD',
+      1000,
+      'Available'
+    ),
+
+    (
+      'Cargo Van',
+      'Van',
+      'D 5678 EF',
+      500,
+      'On Delivery'
+    ),
+
+    (
+      'Sky Aircraft',
+      'Aircraft',
+      'PK-AAA',
+      5000,
+      'Ready'
     );
   `;
-
-  await sql`
-    INSERT INTO shipment_details (shipment_id, insurance, note)
-    VALUES
-      (1, 'Yes', 'Fragile item'),
-      (2, 'No', 'Handle with care'),
-      (3, 'Yes', 'Electronic goods'),
-      (4, 'No', 'Documents only'),
-      (5, 'Yes', 'Express delivery'),
-      (6, 'No', 'Standard shipment'),
-      (7, 'Yes', 'Medical supplies'),
-      (8, 'No', 'Food package'),
-      (9, 'Yes', 'Luxury goods'),
-      (10, 'No', 'Regular shipment');
-  `;
 }
 
-// ================= TRACKING LOGS =================
-async function seedTrackingLogs() {
-
-  await sql`
-    CREATE TABLE tracking_logs (
-      id SERIAL PRIMARY KEY,
-      shipment_id INT REFERENCES shipments(id),
-      status TEXT
-    );
-  `;
-
-  await sql`
-    INSERT INTO tracking_logs (shipment_id, status)
-    VALUES
-      (1, 'Received'),
-      (1, 'Departed'),
-      (2, 'Sortation'),
-      (3, 'Loaded'),
-      (4, 'Arrived'),
-      (5, 'Delayed'),
-      (6, 'Received'),
-      (7, 'Departed'),
-      (8, 'Sortation'),
-      (9, 'Loaded');
-  `;
-}
-
-// ================= JUNCTION TABLE =================
-async function seedShipmentItems() {
-
-  await sql`
-    CREATE TABLE shipment_items (
-      shipment_id INT REFERENCES shipments(id),
-      item_id INT REFERENCES items(id)
-    );
-  `;
-
-  await sql`
-    INSERT INTO shipment_items (shipment_id, item_id)
-    VALUES
-      (1,1),
-      (1,2),
-      (2,3),
-      (3,4),
-      (4,5),
-      (5,6),
-      (6,7),
-      (7,8),
-      (8,9),
-      (9,10);
-  `;
-}
-
-// ================= SEED Shipping Rates =================
+// ================= SHIPPING RATES =================
 async function seedShippingRates() {
 
   await sql`
@@ -200,13 +150,287 @@ async function seedShippingRates() {
   `;
 }
 
+// ================= SHIPMENTS =================
+async function seedShipments() {
+
+  await sql`
+    CREATE TABLE shipments (
+      id SERIAL PRIMARY KEY,
+
+      awb TEXT,
+
+      shipping_date DATE,
+
+      sender_name TEXT,
+
+      receiver_name TEXT,
+
+      phone TEXT,
+
+      origin_city TEXT,
+
+      destination_city TEXT,
+
+      item_type TEXT,
+
+      weight INT,
+
+      price INT,
+
+      shipping_type TEXT,
+
+      shipping_status TEXT,
+
+      notes TEXT,
+
+      vehicle_id INT REFERENCES vehicles(id),
+
+      customer_id INT REFERENCES customers(id)
+    );
+  `;
+
+  await sql`
+    INSERT INTO shipments (
+
+      awb,
+
+      shipping_date,
+
+      sender_name,
+
+      receiver_name,
+
+      phone,
+
+      origin_city,
+
+      destination_city,
+
+      item_type,
+
+      weight,
+
+      price,
+
+      shipping_type,
+
+      shipping_status,
+
+      notes,
+
+      vehicle_id,
+
+      customer_id
+    )
+
+    VALUES
+
+    (
+      'AWB001',
+      '2026-05-25',
+      'Reynard',
+      'Budi',
+      '08123456789',
+      'Jakarta',
+      'CGK',
+      'Laptop',
+      5,
+      50000,
+      'Express',
+      'Diproses',
+      'Fragile item',
+      1,
+      1
+    ),
+
+    (
+      'AWB002',
+      '2026-05-25',
+      'Arnold',
+      'Kevin',
+      '08111111111',
+      'Bandung',
+      'SIN',
+      'Phone',
+      2,
+      120000,
+      'Biasa',
+      'Dalam Pengiriman',
+      'Handle with care',
+      2,
+      1
+    ),
+
+    (
+      'AWB003',
+      '2026-05-25',
+      'Flynn',
+      'Sinta',
+      '08222222222',
+      'Surabaya',
+      'KUL',
+      'Shoes',
+      3,
+      100000,
+      'VVIP',
+      'Selesai',
+      'Fast delivery',
+      3,
+      2
+    ),
+
+    (
+      'AWB004',
+      '2026-05-25',
+      'Kevin',
+      'Rico',
+      '08333333333',
+      'Bali',
+      'BKK',
+      'Clothes',
+      4,
+      140000,
+      'Express',
+      'Pending',
+      'Fashion package',
+      1,
+      3
+    ),
+
+    (
+      'AWB005',
+      '2026-05-25',
+      'Rico',
+      'Lina',
+      '08444444444',
+      'Medan',
+      'HKG',
+      'Books',
+      6,
+      180000,
+      'VVIP',
+      'Sampai Tujuan',
+      'Education shipment',
+      2,
+      4
+    );
+  `;
+}
+
+// ================= SHIPMENT DETAILS =================
+async function seedShipmentDetails() {
+
+  await sql`
+    CREATE TABLE shipment_details (
+      id SERIAL PRIMARY KEY,
+
+      shipment_id INT UNIQUE REFERENCES shipments(id),
+
+      insurance TEXT,
+
+      note TEXT
+    );
+  `;
+
+  await sql`
+    INSERT INTO shipment_details (
+      shipment_id,
+      insurance,
+      note
+    )
+
+    VALUES
+
+    (1, 'Yes', 'Fragile item'),
+
+    (2, 'No', 'Handle with care'),
+
+    (3, 'Yes', 'Electronic goods'),
+
+    (4, 'No', 'Documents only'),
+
+    (5, 'Yes', 'Express delivery');
+  `;
+}
+
+// ================= TRACKING LOGS =================
+async function seedTrackingLogs() {
+
+  await sql`
+    CREATE TABLE tracking_logs (
+      id SERIAL PRIMARY KEY,
+
+      shipment_id INT REFERENCES shipments(id),
+
+      status TEXT
+    );
+  `;
+
+  await sql`
+    INSERT INTO tracking_logs (
+      shipment_id,
+      status
+    )
+
+    VALUES
+
+    (1, 'Received'),
+
+    (1, 'Departed'),
+
+    (2, 'Sortation'),
+
+    (3, 'Loaded'),
+
+    (4, 'Arrived'),
+
+    (5, 'Delayed');
+  `;
+}
+
+// ================= JUNCTION TABLE =================
+async function seedShipmentItems() {
+
+  await sql`
+    CREATE TABLE shipment_items (
+      shipment_id INT REFERENCES shipments(id),
+
+      item_id INT REFERENCES items(id)
+    );
+  `;
+
+  await sql`
+    INSERT INTO shipment_items (
+      shipment_id,
+      item_id
+    )
+
+    VALUES
+
+    (1,1),
+
+    (1,2),
+
+    (2,3),
+
+    (3,4),
+
+    (4,5),
+
+    (5,6);
+  `;
+}
+
 // ================= GET =================
 export async function GET() {
+
   try {
 
     await seedCustomers();
 
     await seedItems();
+
+    await seedVehicles();
 
     await seedShippingRates();
 

@@ -1,312 +1,355 @@
 "use client";
 
 import DashboardLayout from "../ui/layout-dashboard";
-import Search from "../ui/search";
+import { useEffect, useState } from "react";
 
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Tooltip,
-  Legend,
-} from "chart.js";
+export default function DashboardPage() {
 
-import dynamic from "next/dynamic";
-import { Suspense, useEffect, useState } from "react";
+  const [shipments, setShipments] = useState<any[]>([]);
 
-// register chart
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Tooltip,
-  Legend
-);
-
-// fix next.js chart
-const Bar = dynamic(
-  () => import("react-chartjs-2").then((mod) => mod.Bar),
-  { ssr: false }
-);
-
-export default function Dashboard() {
-
-  const [chartData, setChartData] = useState<any>(null);
-
-  const [search, setSearch] = useState("");
-
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const shipmentsPerPage = 3;
+  // ================= FETCH DATABASE =================
 
   useEffect(() => {
 
-    const timer = setTimeout(() => {
+    fetch("/api/shipments")
 
-      setChartData({
-        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      .then((res) => res.json())
 
-        datasets: [
-          {
-            label: "Shipments",
-            data: [45, 55, 40, 70, 50, 35, 30],
-            backgroundColor: "#2563eb",
-            borderRadius: 6,
-          },
-        ],
+      .then((data) => {
+
+        setShipments(data);
+
       });
-
-    }, 300);
-
-    return () => clearTimeout(timer);
 
   }, []);
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
+  // ================= STATISTICS =================
 
-    animation: {
-      duration: 1200,
-      easing: "easeOutQuart" as const,
-    },
+  const totalShipments = shipments.length;
 
-    plugins: {
-      legend: {
-        display: true,
-      },
-    },
-  };
+  const deliveredCount = shipments.filter(
 
-  // ================= SHIPMENT DATA =================
+    (item) =>
+      item.shipping_status === "Arrived"
 
-  const shipments = [
+  ).length;
 
-    {
-      awb: "AWB-001",
-      status: "Departed",
-      destination: "CGK",
-      time: "08:30",
-      color: "text-blue-500",
-    },
+  const delayedCount = shipments.filter(
 
-    {
-      awb: "AWB-002",
-      status: "Loaded",
-      destination: "SIN",
-      time: "09:15",
-      color: "text-green-500",
-    },
+    (item) =>
+      item.shipping_status === "Delayed"
 
-    {
-      awb: "AWB-003",
-      status: "Sortation",
-      destination: "KUL",
-      time: "10:00",
-      color: "text-yellow-500",
-    },
+  ).length;
 
-    {
-      awb: "AWB-004",
-      status: "Arrived",
-      destination: "HKG",
-      time: "07:45",
-      color: "text-green-600",
-    },
+  const inProgressCount = shipments.filter(
 
-    {
-      awb: "AWB-005",
-      status: "Delayed",
-      destination: "BKK",
-      time: "11:30",
-      color: "text-red-500",
-    },
+    (item) =>
+
+      item.shipping_status !== "Arrived"
+
+  ).length;
+
+  const totalRevenue = shipments.reduce(
+
+    (acc, item) => acc + Number(item.price || 0),
+
+    0
+
+  );
+
+  // ================= WEEKLY CHART DUMMY =================
+
+  const weeklyData = [
+
+    { day: "Mon", total: 12 },
+
+    { day: "Tue", total: 18 },
+
+    { day: "Wed", total: 10 },
+
+    { day: "Thu", total: 22 },
+
+    { day: "Fri", total: 15 },
+
+    { day: "Sat", total: 8 },
+
+    { day: "Sun", total: 5 },
 
   ];
 
-  // ================= SEARCH =================
-
-  const filteredShipments = shipments.filter((item) =>
-
-    item.awb.toLowerCase().includes(search.toLowerCase()) ||
-
-    item.destination.toLowerCase().includes(search.toLowerCase()) ||
-
-    item.status.toLowerCase().includes(search.toLowerCase())
-
-  );
-
-  // ================= PAGINATION =================
-
-  const indexOfLastShipment = currentPage * shipmentsPerPage;
-
-  const indexOfFirstShipment =
-    indexOfLastShipment - shipmentsPerPage;
-
-  const currentShipments = filteredShipments.slice(
-    indexOfFirstShipment,
-    indexOfLastShipment
-  );
-
-  const totalPages = Math.ceil(
-    filteredShipments.length / shipmentsPerPage
-  );
-
   return (
+
     <DashboardLayout>
 
-      {/* ================= STATS ================= */}
+      {/* HEADER */}
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="mb-6">
 
-        <div className="bg-white p-4 rounded shadow flex justify-between items-center">
-          <div>
-            <p className="text-gray-500 text-sm">
-              On-Time
-            </p>
+        <h1 className="text-3xl font-bold">
+          Dashboard
+        </h1>
 
-            <h2 className="text-2xl font-bold">
-              28
-            </h2>
-          </div>
-
-          <div className="bg-green-100 text-green-600 p-3 rounded-full">
-            ✔
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded shadow flex justify-between items-center">
-          <div>
-            <p className="text-gray-500 text-sm">
-              Delayed
-            </p>
-
-            <h2 className="text-2xl font-bold">
-              3
-            </h2>
-          </div>
-
-          <div className="bg-red-100 text-red-600 p-3 rounded-full">
-            !
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded shadow flex justify-between items-center">
-          <div>
-            <p className="text-gray-500 text-sm">
-              Departed
-            </p>
-
-            <h2 className="text-2xl font-bold">
-              15
-            </h2>
-          </div>
-
-          <div className="bg-blue-100 text-blue-600 p-3 rounded-full">
-            ✈
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded shadow flex justify-between items-center">
-          <div>
-            <p className="text-gray-500 text-sm">
-              In Progress
-            </p>
-
-            <h2 className="text-2xl font-bold">
-              12
-            </h2>
-          </div>
-
-          <div className="bg-yellow-100 text-yellow-600 p-3 rounded-full">
-            ⏳
-          </div>
-        </div>
+        <p className="text-gray-500 mt-1">
+          Cargo shipment monitoring system
+        </p>
 
       </div>
 
-      {/* ================= CHART ================= */}
+      {/* TOP CARDS */}
 
-      <div className="bg-white p-6 rounded shadow h-[400px] mb-6">
+      <div className="grid grid-cols-5 gap-4 mb-6">
 
-        <h2 className="mb-4 font-semibold">
-          Weekly Shipments
-        </h2>
+        {/* TOTAL SHIPMENT */}
 
-        <Suspense fallback={<p>Loading Chart...</p>}>
+        <div className="bg-white p-5 rounded-xl shadow">
 
-          {chartData && (
-            <Bar data={chartData} options={options} />
-          )}
+          <p className="text-gray-500 text-sm mb-2">
+            Total Shipments
+          </p>
 
-        </Suspense>
-
-      </div>
-
-      {/* ================= TABLE ================= */}
-
-      <div className="bg-white p-6 rounded shadow mt-6">
-
-        <div className="flex justify-between mb-4">
-
-          <h2 className="font-semibold">
-            Daily Cargo Shipments
+          <h2 className="text-3xl font-bold">
+            {totalShipments}
           </h2>
 
-          <span className="text-sm text-gray-400">
-            {filteredShipments.length} entries
-          </span>
+        </div>
+
+        {/* DELIVERED */}
+
+        <div className="bg-white p-5 rounded-xl shadow">
+
+          <p className="text-gray-500 text-sm mb-2">
+            Delivered
+          </p>
+
+          <h2 className="text-3xl font-bold text-green-600">
+            {deliveredCount}
+          </h2>
 
         </div>
 
-        {/* ================= SEARCH ================= */}
+        {/* DELAYED */}
 
-        <Search
-          search={search}
-          setSearch={setSearch}
-        />
+        <div className="bg-white p-5 rounded-xl shadow">
 
-        {/* ================= TABLE ================= */}
+          <p className="text-gray-500 text-sm mb-2">
+            Delayed
+          </p>
+
+          <h2 className="text-3xl font-bold text-red-600">
+            {delayedCount}
+          </h2>
+
+        </div>
+
+        {/* IN PROGRESS */}
+
+        <div className="bg-white p-5 rounded-xl shadow">
+
+          <p className="text-gray-500 text-sm mb-2">
+            In Progress
+          </p>
+
+          <h2 className="text-3xl font-bold text-blue-600">
+            {inProgressCount}
+          </h2>
+
+        </div>
+
+        {/* REVENUE */}
+
+        <div className="bg-white p-5 rounded-xl shadow">
+
+          <p className="text-gray-500 text-sm mb-2">
+            Revenue
+          </p>
+
+          <h2 className="text-2xl font-bold text-yellow-600">
+
+            Rp
+            {totalRevenue.toLocaleString("id-ID")}
+
+          </h2>
+
+        </div>
+
+      </div>
+
+      {/* WEEKLY SHIPMENT */}
+
+      <div className="bg-white p-6 rounded-xl shadow mb-6">
+
+        <h2 className="text-xl font-bold mb-6">
+
+          Weekly Shipments
+
+        </h2>
+
+        <div className="flex items-end justify-between h-[300px] gap-4">
+
+          {weeklyData.map((item, index) => (
+
+            <div
+              key={index}
+              className="flex flex-col items-center flex-1"
+            >
+
+              <div
+
+                className="bg-blue-500 rounded-t-lg w-full transition-all duration-300 hover:bg-blue-600"
+
+                style={{
+                  height: `${item.total * 10}px`,
+                }}
+
+              ></div>
+
+              <p className="mt-3 text-sm text-gray-500">
+
+                {item.day}
+
+              </p>
+
+            </div>
+
+          ))}
+
+        </div>
+
+      </div>
+
+      {/* RECENT SHIPMENTS */}
+
+      <div className="bg-white p-6 rounded-xl shadow overflow-x-auto">
+
+        <div className="flex justify-between items-center mb-6">
+
+          <h2 className="text-xl font-bold">
+
+            Recent Shipments
+
+          </h2>
+
+          <p className="text-sm text-gray-400">
+
+            {shipments.length} entries
+
+          </p>
+
+        </div>
 
         <table className="w-full text-sm">
 
-          <thead className="text-gray-400 border-b">
+          <thead>
 
-            <tr>
-              <th className="text-left p-2">AWB</th>
-              <th className="text-left p-2">Status</th>
-              <th className="text-left p-2">Destination</th>
-              <th className="text-left p-2">Time</th>
+            <tr className="border-b text-gray-500">
+
+              <th className="py-3 text-left">
+                AWB
+              </th>
+
+              <th className="py-3 text-left">
+                Sender
+              </th>
+
+              <th className="py-3 text-left">
+                Receiver
+              </th>
+
+              <th className="py-3 text-left">
+                Destination
+              </th>
+
+              <th className="py-3 text-left">
+                Status
+              </th>
+
+              <th className="py-3 text-left">
+                Price
+              </th>
+
             </tr>
 
           </thead>
 
           <tbody>
 
-            {currentShipments.map((item, index) => (
+            {shipments.map((item, index) => (
 
               <tr
                 key={index}
-                className="border-b"
+                className="border-b hover:bg-gray-50"
               >
 
-                <td className="p-2">
+                <td className="py-4 font-medium">
+
                   {item.awb}
+
                 </td>
 
                 <td>
-                  <span className={item.color}>
-                    {item.status}
+
+                  {item.sender_name}
+
+                </td>
+
+                <td>
+
+                  {item.receiver_name}
+
+                </td>
+
+                <td>
+
+                  {item.destination_city}
+
+                </td>
+
+                <td>
+
+                  <span
+
+                    className={`px-3 py-1 rounded-full text-xs font-semibold
+
+                    ${item.shipping_status === "Received"
+
+                      ? "bg-blue-100 text-blue-700"
+
+                      : item.shipping_status === "Loaded"
+
+                      ? "bg-green-100 text-green-700"
+
+                      : item.shipping_status === "Sortation"
+
+                      ? "bg-yellow-100 text-yellow-700"
+
+                      : item.shipping_status === "Arrived"
+
+                      ? "bg-emerald-100 text-emerald-700"
+
+                      : item.shipping_status === "Delayed"
+
+                      ? "bg-red-100 text-red-700"
+
+                      : "bg-gray-100 text-gray-700"
+
+                    }
+
+                  `}
+                  >
+
+                    {item.shipping_status}
+
                   </span>
+
                 </td>
 
-                <td>
-                  {item.destination}
-                </td>
+                <td className="font-semibold text-blue-600">
 
-                <td>
-                  {item.time}
+                  Rp
+                  {Number(item.price).toLocaleString(
+                    "id-ID"
+                  )}
+
                 </td>
 
               </tr>
@@ -317,38 +360,10 @@ export default function Dashboard() {
 
         </table>
 
-        {/* ================= PAGINATION ================= */}
-
-        <div className="flex justify-end gap-2 mt-4">
-
-          <button
-            onClick={() =>
-              setCurrentPage(currentPage - 1)
-            }
-            disabled={currentPage === 1}
-            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-          >
-            Prev
-          </button>
-
-          <span className="px-3 py-1">
-            {currentPage} / {totalPages}
-          </span>
-
-          <button
-            onClick={() =>
-              setCurrentPage(currentPage + 1)
-            }
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-          >
-            Next
-          </button>
-
-        </div>
-
       </div>
 
     </DashboardLayout>
+
   );
+
 }

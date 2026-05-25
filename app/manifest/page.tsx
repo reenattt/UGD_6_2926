@@ -1,293 +1,764 @@
 "use client";
 
 import DashboardLayout from "../ui/layout-dashboard";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Manifest() {
 
   const [showForm, setShowForm] = useState(false);
-  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
-  const [shipments, setShipments] = useState([
-    {
-      awb: "AWB-2026-001234",
-      origin: "SUB",
-      destination: "CGK",
-      commodity: "General Cargo",
-      weight: "120 kg",
-      status: "Departed",
-      time: "07 Apr, 08:31",
-    },
-    {
-      awb: "AWB-2026-001235",
-      origin: "CGK",
-      destination: "SIN",
-      commodity: "Documents",
-      weight: "45 kg",
-      status: "Loaded",
-      time: "07 Apr, 09:10",
-    },
-  ]);
+  const [editingIndex, setEditingIndex] =
+    useState<number | null>(null);
+
+  const [search, setSearch] = useState("");
+
+  const [shipments, setShipments] =
+    useState<any[]>([]);
+
+  // ================= FORM =================
 
   const [form, setForm] = useState({
+
+    sender_name: "",
+
+    receiver_name: "",
+
+    phone: "",
+
     origin: "",
+
     destination: "",
+
     commodity: "",
+
     weight: "",
+
+    shipping_type: "Biasa",
+
+    notes: "",
+
+    vehicle_id: "1",
+
   });
 
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  // ================= FETCH =================
 
-  const statusList = ["Received", "Sortation", "Loaded", "Departed", "Arrived", "Delayed"];
+  useEffect(() => {
 
-  // GENERATE AWB
+    fetch("/api/shipments")
+
+      .then((res) => res.json())
+
+      .then((data) => {
+
+        const formatted = data.map((item: any) => ({
+
+          id: item.id,
+
+          awb: item.awb,
+
+          sender_name: item.sender_name,
+
+          receiver_name: item.receiver_name,
+
+          phone: item.phone,
+
+          origin: item.origin_city,
+
+          destination: item.destination_city,
+
+          commodity: item.item_type,
+
+          weight: item.weight,
+
+          price: item.price,
+
+          shipping_type: item.shipping_type,
+
+          status: item.shipping_status,
+
+          notes: item.notes,
+
+          vehicle_id: item.vehicle_id,
+
+          vehicle_name:
+            item.vehicle_id == 1
+              ? "Boeing 737"
+              : "Airbus A330",
+
+          time: item.shipping_date,
+
+        }));
+
+        setShipments(formatted);
+
+      });
+
+  }, []);
+
+  // ================= AUTO AWB =================
+
   const generateAWB = () => {
-    const base = 1234 + shipments.length;
-    return `AWB-2026-${String(base).padStart(6, "0")}`;
+
+    const nextNumber = shipments.length + 1;
+
+    return `AWB${String(nextNumber).padStart(3, "0")}`;
+
   };
 
-  // CREATE
-  const handleSubmit = () => {
+  // ================= PRICE =================
+
+  const totalPrice =
+    Number(form.weight || 0) * 5000;
+
+  // ================= CREATE =================
+
+  const handleSubmit = async () => {
+
     const newData = {
+
       awb: generateAWB(),
-      ...form,
-      status: "Received",
-      time: "Now",
+
+      sender_name: form.sender_name,
+
+      receiver_name: form.receiver_name,
+
+      phone: form.phone,
+
+      origin_city: form.origin,
+
+      destination_city: form.destination,
+
+      item_type: form.commodity,
+
+      weight: Number(form.weight),
+
+      price: totalPrice,
+
+      shipping_type: form.shipping_type,
+
+      shipping_status: "Received",
+
+      notes: form.notes,
+
+      vehicle_id: Number(form.vehicle_id),
+
     };
 
-    setShipments([...shipments, newData]);
+    const response = await fetch(
+      "/api/create-shipment",
+      {
 
-    setForm({
-      origin: "",
-      destination: "",
-      commodity: "",
-      weight: "",
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify(newData),
+
+      }
+    );
+
+    if (response.ok) {
+
+      location.reload();
+
+    }
+
+  };
+
+  // ================= UPDATE STATUS =================
+
+  const handleStatusChange = async (
+    index: number,
+    newStatus: string
+  ) => {
+
+    const shipment = shipments[index];
+
+    await fetch("/api/update-shipment", {
+
+      method: "PUT",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+
+        id: shipment.id,
+
+        status: newStatus,
+
+      }),
+
     });
 
-    setShowForm(false);
+    const updated = [...shipments];
+
+    updated[index].status = newStatus;
+
+    setShipments(updated);
+
+    setEditingIndex(null);
+
   };
 
-  // UPDATE STATUS
-  const handleStatusChange = (index: number, newStatus: string) => {
-    const updated = [...shipments];
-    updated[index].status = newStatus;
-    updated[index].time = "Updated";
+  // ================= DELETE =================
+
+  const handleDelete = async (
+    index: number
+  ) => {
+
+    const shipment = shipments[index];
+
+    await fetch("/api/delete-shipment", {
+
+      method: "DELETE",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+
+        id: shipment.id,
+
+      }),
+
+    });
+
+    const updated = shipments.filter(
+      (_, i) => i !== index
+    );
+
     setShipments(updated);
-    setEditingIndex(null);
+
   };
+
+  // ================= SEARCH =================
+
+  const filteredShipments =
+    shipments.filter((item) =>
+
+      item.awb
+        .toLowerCase()
+        .includes(search.toLowerCase()) ||
+
+      item.sender_name
+        .toLowerCase()
+        .includes(search.toLowerCase()) ||
+
+      item.receiver_name
+        .toLowerCase()
+        .includes(search.toLowerCase()) ||
+
+      item.commodity
+        .toLowerCase()
+        .includes(search.toLowerCase())
+
+    );
+
+  // ================= STATUS STYLE =================
+
+  const getStatusColor = (
+    status: string
+  ) => {
+
+    switch (status) {
+
+      case "Received":
+        return "bg-blue-100 text-blue-700";
+
+      case "Sortation":
+        return "bg-purple-100 text-purple-700";
+
+      case "Loaded":
+        return "bg-yellow-100 text-yellow-700";
+
+      case "Departed":
+        return "bg-indigo-100 text-indigo-700";
+
+      case "Arrived":
+        return "bg-green-100 text-green-700";
+
+      case "Delayed":
+        return "bg-red-100 text-red-700";
+
+      default:
+        return "bg-gray-100 text-gray-700";
+
+    }
+
+  };
+
+  const statusList = [
+
+    "Received",
+
+    "Sortation",
+
+    "Loaded",
+
+    "Departed",
+
+    "Arrived",
+
+    "Delayed",
+
+  ];
 
   return (
+
     <DashboardLayout>
 
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Shipments</h1>
+
+      <div className="flex justify-between items-center mb-8">
+
+        <div>
+
+          <h1 className="text-4xl font-bold text-gray-800">
+            Shipments
+          </h1>
+
+          <p className="text-gray-500 mt-1">
+            Manage all cargo shipment data
+          </p>
+
+        </div>
 
         <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          onClick={() =>
+            setShowForm(!showForm)
+          }
+          className="bg-blue-600 hover:bg-blue-700 transition text-white px-6 py-3 rounded-xl shadow-lg"
         >
           + Create Shipment
         </button>
+
+      </div>
+
+      {/* SEARCH */}
+
+      <div className="bg-white rounded-2xl shadow-sm p-5 mb-8 border">
+
+        <input
+          type="text"
+          placeholder="Search AWB / Sender / Receiver / Commodity"
+          value={search}
+          onChange={(e) =>
+            setSearch(e.target.value)
+          }
+          className="w-full border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition p-4 rounded-xl outline-none"
+        />
+
       </div>
 
       {/* FORM */}
+
       {showForm && (
-        <div className="bg-white p-6 rounded shadow mb-6 grid grid-cols-2 gap-4">
 
-          <input
-            placeholder="Origin"
-            value={form.origin}
-            onChange={(e) => setForm({ ...form, origin: e.target.value })}
-            className="border p-2 rounded"
-          />
+        <div className="bg-white p-8 rounded-2xl shadow-lg mb-8 border">
 
-          <input
-            placeholder="Destination"
-            value={form.destination}
-            onChange={(e) => setForm({ ...form, destination: e.target.value })}
-            className="border p-2 rounded"
-          />
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">
+            Create New Shipment
+          </h2>
 
-          <input
-            placeholder="Commodity"
-            value={form.commodity}
-            onChange={(e) => setForm({ ...form, commodity: e.target.value })}
-            className="border p-2 rounded"
-          />
+          <div className="grid grid-cols-2 gap-5">
 
-          <input
-            placeholder="Weight"
-            value={form.weight}
-            onChange={(e) => setForm({ ...form, weight: e.target.value })}
-            className="border p-2 rounded"
-          />
+            <input
+              placeholder="Sender Name"
+              value={form.sender_name}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  sender_name: e.target.value,
+                })
+              }
+              className="border p-4 rounded-xl"
+            />
 
-          <div className="col-span-2 flex gap-4">
+            <input
+              placeholder="Receiver Name"
+              value={form.receiver_name}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  receiver_name: e.target.value,
+                })
+              }
+              className="border p-4 rounded-xl"
+            />
+
+            <input
+              placeholder="Phone Number"
+              value={form.phone}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  phone: e.target.value,
+                })
+              }
+              className="border p-4 rounded-xl"
+            />
+
+            <input
+              placeholder="Item Type"
+              value={form.commodity}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  commodity: e.target.value,
+                })
+              }
+              className="border p-4 rounded-xl"
+            />
+
+            <input
+              placeholder="Origin City"
+              value={form.origin}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  origin: e.target.value,
+                })
+              }
+              className="border p-4 rounded-xl"
+            />
+
+            <input
+              placeholder="Destination City"
+              value={form.destination}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  destination: e.target.value,
+                })
+              }
+              className="border p-4 rounded-xl"
+            />
+
+            <input
+              type="number"
+              placeholder="Weight (kg)"
+              value={form.weight}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  weight: e.target.value,
+                })
+              }
+              className="border p-4 rounded-xl"
+            />
+
+            <select
+              value={form.shipping_type}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  shipping_type: e.target.value,
+                })
+              }
+              className="border p-4 rounded-xl"
+            >
+
+              <option value="Biasa">
+                Biasa
+              </option>
+
+              <option value="Express">
+                Express
+              </option>
+
+              <option value="VVIP">
+                VVIP
+              </option>
+
+            </select>
+
+            {/* VEHICLE */}
+
+            <select
+              value={form.vehicle_id}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  vehicle_id: e.target.value,
+                })
+              }
+              className="border p-4 rounded-xl"
+            >
+
+              <option value="1">
+                Boeing 737 Cargo
+              </option>
+
+              <option value="2">
+                Airbus A330 Cargo
+              </option>
+
+            </select>
+
+            <textarea
+              placeholder="Notes / Description"
+              value={form.notes}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  notes: e.target.value,
+                })
+              }
+              className="border p-4 rounded-xl col-span-2"
+              rows={4}
+            />
+
+          </div>
+
+          {/* PRICE */}
+
+          <div className="mt-6 bg-blue-50 p-5 rounded-xl">
+
+            <h2 className="text-2xl font-bold text-blue-700">
+
+              Total Price : Rp
+              {totalPrice.toLocaleString("id-ID")}
+
+            </h2>
+
+          </div>
+
+          {/* BUTTON */}
+
+          <div className="flex gap-4 mt-6">
+
             <button
               onClick={handleSubmit}
-              className="bg-green-600 text-white px-4 py-2 rounded"
+              className="bg-blue-600 hover:bg-blue-700 transition text-white px-6 py-3 rounded-xl shadow"
             >
-              Submit
+              Save Shipment
             </button>
 
             <button
-              onClick={() => setShowForm(false)}
-              className="bg-gray-400 text-white px-4 py-2 rounded"
+              onClick={() =>
+                setShowForm(false)
+              }
+              className="bg-gray-300 hover:bg-gray-400 transition px-6 py-3 rounded-xl"
             >
               Cancel
             </button>
+
           </div>
 
         </div>
+
       )}
 
       {/* TABLE */}
-      <div className="bg-white p-6 rounded shadow">
 
-        <h2 className="font-semibold mb-4">Daftar Shipment</h2>
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden border">
 
-        <table className="w-full text-left">
+        <div className="overflow-x-auto">
 
-          <thead>
-            <tr className="text-gray-500">
-              <th>AWB Number</th>
-              <th>Origin</th>
-              <th>Destination</th>
-              <th>Commodity</th>
-              <th>Weight</th>
-              <th>Status</th>
-              <th>Last Updated</th>
-              <th>Action</th>
-            </tr>
-          </thead>
+          <table className="w-full">
 
-          <tbody>
-            {shipments.map((item, index) => (
-              <tr key={index} className="border-t">
+            <thead className="bg-gray-100 text-gray-700">
 
-                <td>{item.awb}</td>
-                <td>{item.origin}</td>
-                <td>{item.destination}</td>
-                <td>{item.commodity}</td>
-                <td>{item.weight}</td>
+              <tr>
 
-                {/* STATUS */}
-                <td>
-                  {editingIndex === index ? (
-                    <select
-                      onChange={(e) =>
-                        handleStatusChange(index, e.target.value)
-                      }
-                      defaultValue={item.status}
-                      className="border p-1 rounded"
-                    >
-                      {statusList.map((s) => (
-                        <option key={s}>{s}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span
-                      className={`px-2 py-1 rounded text-sm ${
-                        item.status === "Departed"
-                          ? "bg-blue-100 text-blue-600"
-                          : item.status === "Loaded"
-                          ? "bg-green-100 text-green-600"
-                          : item.status === "Sortation"
-                          ? "bg-yellow-100 text-yellow-600"
-                          : item.status === "Arrived"
-                          ? "bg-green-200 text-green-700"
-                          : item.status === "Delayed"
-                          ? "bg-red-100 text-red-600"
-                          : "bg-gray-200 text-gray-600"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  )}
-                </td>
+                <th className="p-5 text-left">
+                  AWB
+                </th>
 
-                <td>{item.time}</td>
+                <th className="p-5 text-left">
+                  Sender
+                </th>
 
-                {/* ACTION */}
-                <td className="flex gap-2">
+                <th className="p-5 text-left">
+                  Receiver
+                </th>
 
-                  {editingIndex === index ? (
-                    <button
-                      onClick={() => setEditingIndex(null)}
-                      className="text-gray-500"
-                    >
-                      Cancel
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => setEditingIndex(index)}
-                        className="bg-yellow-400 px-3 py-1 rounded text-sm"
-                      >
-                        Update
-                      </button>
+                <th className="p-5 text-left">
+                  Route
+                </th>
 
-                      <button
-                        onClick={() => setDeleteIndex(index)}
-                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
+                <th className="p-5 text-left">
+                  Vehicle
+                </th>
 
-                </td>
+                <th className="p-5 text-left">
+                  Commodity
+                </th>
+
+                <th className="p-5 text-left">
+                  Weight
+                </th>
+
+                <th className="p-5 text-left">
+                  Status
+                </th>
+
+                <th className="p-5 text-left">
+                  Action
+                </th>
 
               </tr>
-            ))}
-          </tbody>
 
-        </table>
+            </thead>
+
+            <tbody>
+
+              {filteredShipments.map(
+                (item, index) => (
+
+                  <tr
+                    key={index}
+                    className="border-t hover:bg-gray-50 transition"
+                  >
+
+                    <td className="p-5 font-bold text-blue-700">
+                      {item.awb}
+                    </td>
+
+                    <td className="p-5">
+                      {item.sender_name}
+                    </td>
+
+                    <td className="p-5">
+                      {item.receiver_name}
+                    </td>
+
+                    <td className="p-5">
+                      {item.origin} → {item.destination}
+                    </td>
+
+                    {/* VEHICLE */}
+
+                    <td className="p-5">
+
+                      <span className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-sm font-medium">
+
+                        {item.vehicle_name}
+
+                      </span>
+
+                    </td>
+
+                    <td className="p-5">
+                      {item.commodity}
+                    </td>
+
+                    <td className="p-5">
+                      {item.weight} Kg
+                    </td>
+
+                    {/* STATUS */}
+
+                    <td className="p-5">
+
+                      {editingIndex === index ? (
+
+                        <select
+                          onChange={(e) =>
+                            handleStatusChange(
+                              index,
+                              e.target.value
+                            )
+                          }
+                          value={item.status}
+                          className="border border-gray-300 p-2 rounded-lg text-sm"
+                        >
+
+                          {statusList.map((s) => (
+
+                            <option
+                              key={s}
+                              value={s}
+                            >
+                              {s}
+                            </option>
+
+                          ))}
+
+                        </select>
+
+                      ) : (
+
+                        <span
+                          className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${getStatusColor(
+                            item.status
+                          )}`}
+                        >
+
+                          {item.status}
+
+                        </span>
+
+                      )}
+
+                    </td>
+
+                    {/* ACTION */}
+
+                    <td className="p-5">
+
+                      <div className="flex gap-3">
+
+                        {editingIndex === index ? (
+
+                          <button
+                            onClick={() =>
+                              setEditingIndex(null)
+                            }
+                            className="bg-gray-400 hover:bg-gray-500 transition text-white px-4 py-2 rounded-lg"
+                          >
+                            Cancel
+                          </button>
+
+                        ) : (
+
+                          <>
+                            <button
+                              onClick={() =>
+                                setEditingIndex(index)
+                              }
+                              className="bg-yellow-400 hover:bg-yellow-500 transition px-4 py-2 rounded-lg font-medium"
+                            >
+                              Update
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                handleDelete(index)
+                              }
+                              className="bg-red-500 hover:bg-red-600 transition text-white px-4 py-2 rounded-lg font-medium"
+                            >
+                              Delete
+                            </button>
+                          </>
+
+                        )}
+
+                      </div>
+
+                    </td>
+
+                  </tr>
+
+                )
+              )}
+
+            </tbody>
+
+          </table>
+
+        </div>
 
       </div>
 
-      {/* ===== MODAL DELETE ===== */}
-      {deleteIndex !== null && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-
-          <div className="bg-white p-6 rounded shadow w-[350px] text-center">
-
-            <h2 className="text-lg font-semibold mb-3">
-              Konfirmasi Hapus
-            </h2>
-
-            <p className="text-gray-500 mb-5">
-              Apakah kamu yakin ingin menghapus shipment ini?
-            </p>
-
-            <div className="flex justify-center gap-4">
-
-              <button
-                onClick={() => setDeleteIndex(null)}
-                className="px-4 py-2 bg-gray-400 text-white rounded"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={() => {
-                  const updated = shipments.filter((_, i) => i !== deleteIndex);
-                  setShipments(updated);
-                  setDeleteIndex(null);
-                }}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded"
-              >
-                Delete
-              </button>
-
-            </div>
-
-          </div>
-
-        </div>
-      )}
-
     </DashboardLayout>
+
   );
+
 }

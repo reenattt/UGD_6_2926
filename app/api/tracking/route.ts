@@ -1,0 +1,58 @@
+import postgres from "postgres";
+
+const sql = postgres(process.env.DATABASE_URL!, {
+  ssl: "require",
+});
+
+export async function GET(request: Request) {
+
+  try {
+
+    const { searchParams } =
+      new URL(request.url);
+
+    const awb =
+      searchParams.get("awb");
+
+    const shipment = await sql`
+
+      SELECT *
+
+      FROM shipments
+
+      WHERE awb = ${awb}
+
+    `;
+
+    if (shipment.length === 0) {
+
+      return Response.json({
+        found: false,
+      });
+
+    }
+
+    return Response.json({
+
+      found: true,
+
+      shipment: shipment[0],
+
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    return Response.json(
+      {
+        error: "Failed to fetch tracking",
+      },
+      {
+        status: 500,
+      }
+    );
+
+  }
+
+}
