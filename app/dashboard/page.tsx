@@ -7,6 +7,11 @@ export default function DashboardPage() {
 
   const [shipments, setShipments] = useState<any[]>([]);
 
+  const [currentPage, setCurrentPage] =
+    useState(1);
+
+  const itemsPerPage = 5;
+
   // ================= FETCH DATABASE =================
 
   useEffect(() => {
@@ -119,6 +124,21 @@ export default function DashboardPage() {
     }
 
   });
+
+  // ================= PAGINATION =================
+
+  const totalPages = Math.ceil(
+    shipments.length / itemsPerPage
+  );
+
+  const startIndex =
+    (currentPage - 1) * itemsPerPage;
+
+  const currentShipments =
+    shipments.slice(
+      startIndex,
+      startIndex + itemsPerPage
+    );
 
   return (
 
@@ -320,7 +340,7 @@ export default function DashboardPage() {
 
           <tbody>
 
-            {shipments.map((item, index) => (
+            {currentShipments.map((item, index) => (
 
               <tr
                 key={index}
@@ -414,6 +434,51 @@ export default function DashboardPage() {
           </tbody>
 
         </table>
+        {/* PAGINATION */}
+
+        <div className="flex justify-between items-center mt-6">
+
+          <p className="text-sm text-gray-500">
+
+            Page {currentPage} of {totalPages}
+
+          </p>
+
+          <div className="flex gap-3">
+
+            {/* PREVIOUS */}
+
+            <button
+              onClick={() =>
+                setCurrentPage((prev) =>
+                  Math.max(prev - 1, 1)
+                )
+              }
+              disabled={currentPage === 1}
+              className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+            >
+              Previous
+            </button>
+
+            {/* NEXT */}
+
+            <button
+              onClick={() =>
+                setCurrentPage((prev) =>
+                  Math.min(prev + 1, totalPages)
+                )
+              }
+              disabled={
+                currentPage === totalPages
+              }
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              Next
+            </button>
+
+          </div>
+
+        </div>
 
       </div>
 
