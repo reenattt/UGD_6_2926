@@ -35,6 +35,8 @@ export default function Manifest() {
 
     shipping_type: "Biasa",
 
+    shipping_status: "Received",
+
     notes: "",
 
     vehicle_id: "1",
@@ -83,8 +85,8 @@ export default function Manifest() {
 
           vehicle_name:
             item.vehicle_id == 1
-              ? "Boeing 737"
-              : "Airbus A330",
+              ? "Boeing 737 Cargo"
+              : "Airbus A330 Cargo",
 
           time: item.shipping_date,
 
@@ -108,8 +110,18 @@ export default function Manifest() {
 
   // ================= PRICE =================
 
+  const basePrice =
+    Number(form.weight || 0) * 50000;
+
+  const extraPrice =
+    form.shipping_type === "Express"
+      ? 20000
+      : form.shipping_type === "VVIP"
+        ? 50000
+        : 0;
+
   const totalPrice =
-    Number(form.weight || 0) * 5000;
+    basePrice + extraPrice;
 
   // ================= CREATE =================
 
@@ -137,7 +149,7 @@ export default function Manifest() {
 
       shipping_type: form.shipping_type,
 
-      shipping_status: "Received",
+      shipping_status: form.shipping_status,
 
       notes: form.notes,
 
@@ -168,40 +180,103 @@ export default function Manifest() {
 
   };
 
-  // ================= UPDATE STATUS =================
+  // ================= EDIT =================
 
-  const handleStatusChange = async (
-    index: number,
-    newStatus: string
+  const handleEdit = (
+    item: any,
+    index: number
   ) => {
 
-    const shipment = shipments[index];
+    setEditingIndex(index);
 
-    await fetch("/api/update-shipment", {
+    setForm({
 
-      method: "PUT",
+      sender_name: item.sender_name,
 
-      headers: {
-        "Content-Type": "application/json",
-      },
+      receiver_name: item.receiver_name,
 
-      body: JSON.stringify({
+      phone: item.phone,
 
-        id: shipment.id,
+      origin: item.origin,
 
-        status: newStatus,
+      destination: item.destination,
 
-      }),
+      commodity: item.commodity,
+
+      weight: String(item.weight),
+
+      shipping_type: item.shipping_type,
+
+      shipping_status: item.status,
+
+      notes: item.notes,
+
+      vehicle_id: String(item.vehicle_id || "1"),
 
     });
 
-    const updated = [...shipments];
+    setShowForm(true);
 
-    updated[index].status = newStatus;
+  };
 
-    setShipments(updated);
+  // ================= UPDATE =================
 
-    setEditingIndex(null);
+  const handleUpdateShipment = async () => {
+
+    if (editingIndex === null) return;
+
+    const shipment = shipments[editingIndex];
+
+    const updatedData = {
+
+      id: shipment.id,
+
+      sender_name: form.sender_name,
+
+      receiver_name: form.receiver_name,
+
+      phone: form.phone,
+
+      origin_city: form.origin,
+
+      destination_city: form.destination,
+
+      item_type: form.commodity,
+
+      weight: Number(form.weight),
+
+      price: totalPrice,
+
+      shipping_type: form.shipping_type,
+
+      shipping_status: form.shipping_status,
+
+      notes: form.notes,
+
+      vehicle_id: Number(form.vehicle_id),
+
+    };
+
+    const response = await fetch(
+      "/api/update-shipment",
+      {
+
+        method: "PUT",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify(updatedData),
+
+      }
+    );
+
+    if (response.ok) {
+
+      location.reload();
+
+    }
 
   };
 
@@ -212,6 +287,12 @@ export default function Manifest() {
   ) => {
 
     const shipment = shipments[index];
+
+    const confirmDelete = window.confirm(
+      `Delete shipment ${shipment.awb}?`
+    );
+
+    if (!confirmDelete) return;
 
     await fetch("/api/delete-shipment", {
 
@@ -330,9 +411,40 @@ export default function Manifest() {
         </div>
 
         <button
-          onClick={() =>
-            setShowForm(!showForm)
-          }
+          onClick={() => {
+
+            setEditingIndex(null);
+
+            setForm({
+
+              sender_name: "",
+
+              receiver_name: "",
+
+              phone: "",
+
+              origin: "",
+
+              destination: "",
+
+              commodity: "",
+
+              weight: "",
+
+              shipping_type: "Biasa",
+
+              shipping_status: "Received",
+
+              notes: "",
+
+              vehicle_id: "1",
+
+            });
+
+            setShowForm(true);
+
+          }}
+          
           className="bg-blue-600 hover:bg-blue-700 transition text-white px-6 py-3 rounded-xl shadow-lg"
         >
           + Create Shipment
@@ -363,7 +475,11 @@ export default function Manifest() {
         <div className="bg-white p-8 rounded-2xl shadow-lg mb-8 border">
 
           <h2 className="text-2xl font-bold text-gray-800 mb-6">
-            Create New Shipment
+
+            {editingIndex !== null
+              ? "Update Shipment"
+              : "Create New Shipment"}
+
           </h2>
 
           <div className="grid grid-cols-2 gap-5">
@@ -478,7 +594,29 @@ export default function Manifest() {
 
             </select>
 
-            {/* VEHICLE */}
+            <select
+              value={form.shipping_status}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  shipping_status: e.target.value,
+                })
+              }
+              className="border p-4 rounded-xl"
+            >
+
+              {statusList.map((status) => (
+
+                <option
+                  key={status}
+                  value={status}
+                >
+                  {status}
+                </option>
+
+              ))}
+
+            </select>
 
             <select
               value={form.vehicle_id}
@@ -533,17 +671,31 @@ export default function Manifest() {
 
           <div className="flex gap-4 mt-6">
 
-            <button
-              onClick={handleSubmit}
-              className="bg-blue-600 hover:bg-blue-700 transition text-white px-6 py-3 rounded-xl shadow"
-            >
-              Save Shipment
-            </button>
+            {editingIndex !== null ? (
+
+              <button
+                onClick={handleUpdateShipment}
+                className="bg-yellow-500 hover:bg-yellow-600 transition text-white px-6 py-3 rounded-xl shadow"
+              >
+                Update Shipment
+              </button>
+
+            ) : (
+
+              <button
+                onClick={handleSubmit}
+                className="bg-blue-600 hover:bg-blue-700 transition text-white px-6 py-3 rounded-xl shadow"
+              >
+                Save Shipment
+              </button>
+
+            )}
 
             <button
-              onClick={() =>
-                setShowForm(false)
-              }
+              onClick={() => {
+                setShowForm(false);
+                setEditingIndex(null);
+              }}
               className="bg-gray-300 hover:bg-gray-400 transition px-6 py-3 rounded-xl"
             >
               Cancel
@@ -557,203 +709,195 @@ export default function Manifest() {
 
       {/* TABLE */}
 
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden border">
+      <div className="bg-white rounded-2xl shadow-lg border overflow-hidden mt-8">
 
-        <div className="overflow-x-auto">
+        <table className="w-full text-sm">
 
-          <table className="w-full">
+          <thead className="bg-gray-100">
 
-            <thead className="bg-gray-100 text-gray-700">
+            <tr className="text-gray-700">
 
-              <tr>
+              <th className="px-4 py-4 text-left">
+                AWB
+              </th>
 
-                <th className="p-5 text-left">
-                  AWB
-                </th>
+              <th className="px-4 py-4 text-left">
+                Sender
+              </th>
 
-                <th className="p-5 text-left">
-                  Sender
-                </th>
+              <th className="px-4 py-4 text-left">
+                Receiver
+              </th>
 
-                <th className="p-5 text-left">
-                  Receiver
-                </th>
+              <th className="px-4 py-4 text-left">
+                Route
+              </th>
 
-                <th className="p-5 text-left">
-                  Route
-                </th>
+              <th className="px-4 py-4 text-left">
+                Vehicle
+              </th>
 
-                <th className="p-5 text-left">
-                  Vehicle
-                </th>
+              <th className="px-4 py-4 text-left">
+                Commodity
+              </th>
 
-                <th className="p-5 text-left">
-                  Commodity
-                </th>
+              <th className="px-4 py-4 text-left">
+                Weight
+              </th>
 
-                <th className="p-5 text-left">
-                  Weight
-                </th>
+              <th className="px-4 py-4 text-left">
+                Price
+              </th>
 
-                <th className="p-5 text-left">
-                  Status
-                </th>
+              <th className="px-4 py-4 text-left">
+                Status
+              </th>
 
-                <th className="p-5 text-left">
-                  Action
-                </th>
+              <th className="px-4 py-4 text-left">
+                Action
+              </th>
 
-              </tr>
+            </tr>
 
-            </thead>
+          </thead>
 
-            <tbody>
+          <tbody>
 
-              {filteredShipments.map(
-                (item, index) => (
+            {filteredShipments.map(
+              (item, index) => (
 
-                  <tr
-                    key={index}
-                    className="border-t hover:bg-gray-50 transition"
-                  >
+                <tr
+                  key={index}
+                  className="border-t hover:bg-gray-50 transition"
+                >
 
-                    <td className="p-5 font-bold text-blue-700">
-                      {item.awb}
-                    </td>
+                  {/* AWB */}
 
-                    <td className="p-5">
-                      {item.sender_name}
-                    </td>
+                  <td className="px-4 py-5 font-bold text-blue-700">
+                    {item.awb}
+                  </td>
 
-                    <td className="p-5">
-                      {item.receiver_name}
-                    </td>
+                  {/* SENDER */}
 
-                    <td className="p-5">
-                      {item.origin} → {item.destination}
-                    </td>
+                  <td className="px-4 py-5">
+                    {item.sender_name}
+                  </td>
 
-                    {/* VEHICLE */}
+                  {/* RECEIVER */}
 
-                    <td className="p-5">
+                  <td className="px-4 py-5">
+                    {item.receiver_name}
+                  </td>
 
-                      <span className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-sm font-medium">
+                  {/* ROUTE */}
 
-                        {item.vehicle_name}
+                  <td className="px-4 py-5">
 
+                    <div className="leading-relaxed">
+
+                      <span>
+                        {item.origin}
                       </span>
 
-                    </td>
+                      <span className="mx-1 text-gray-400">
+                        →
+                      </span>
 
-                    <td className="p-5">
-                      {item.commodity}
-                    </td>
+                      <span>
+                        {item.destination}
+                      </span>
 
-                    <td className="p-5">
-                      {item.weight} Kg
-                    </td>
+                    </div>
 
-                    {/* STATUS */}
+                  </td>
 
-                    <td className="p-5">
+                  {/* VEHICLE */}
 
-                      {editingIndex === index ? (
+                  <td className="px-4 py-5">
 
-                        <select
-                          onChange={(e) =>
-                            handleStatusChange(
-                              index,
-                              e.target.value
-                            )
-                          }
-                          value={item.status}
-                          className="border border-gray-300 p-2 rounded-lg text-sm"
-                        >
+                    <div className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-xs font-medium inline-block">
 
-                          {statusList.map((s) => (
+                      {item.vehicle_name}
 
-                            <option
-                              key={s}
-                              value={s}
-                            >
-                              {s}
-                            </option>
+                    </div>
 
-                          ))}
+                  </td>
 
-                        </select>
+                  {/* COMMODITY */}
 
-                      ) : (
+                  <td className="px-4 py-5">
+                    {item.commodity}
+                  </td>
 
-                        <span
-                          className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${getStatusColor(
-                            item.status
-                          )}`}
-                        >
+                  {/* WEIGHT */}
 
-                          {item.status}
+                  <td className="px-4 py-5">
+                    {item.weight} Kg
+                  </td>
 
-                        </span>
+                  {/* PRICE */}
 
-                      )}
+                  <td className="px-4 py-5 font-bold text-green-600">
 
-                    </td>
+                    Rp{" "}
+                    {Number(item.price).toLocaleString(
+                      "id-ID"
+                    )}
 
-                    {/* ACTION */}
+                  </td>
 
-                    <td className="p-5">
+                  {/* STATUS */}
 
-                      <div className="flex gap-3">
+                  <td className="px-4 py-5">
 
-                        {editingIndex === index ? (
+                    <span
+                      className={`px-3 py-2 rounded-full text-xs font-semibold inline-block ${getStatusColor(
+                        item.status
+                      )}`}
+                    >
 
-                          <button
-                            onClick={() =>
-                              setEditingIndex(null)
-                            }
-                            className="bg-gray-400 hover:bg-gray-500 transition text-white px-4 py-2 rounded-lg"
-                          >
-                            Cancel
-                          </button>
+                      {item.status}
 
-                        ) : (
+                    </span>
 
-                          <>
-                            <button
-                              onClick={() =>
-                                setEditingIndex(index)
-                              }
-                              className="bg-yellow-400 hover:bg-yellow-500 transition px-4 py-2 rounded-lg font-medium"
-                            >
-                              Update
-                            </button>
+                  </td>
 
-                            <button
-                              onClick={() =>
-                                handleDelete(index)
-                              }
-                              className="bg-red-500 hover:bg-red-600 transition text-white px-4 py-2 rounded-lg font-medium"
-                            >
-                              Delete
-                            </button>
-                          </>
+                  {/* ACTION */}
 
-                        )}
+                  <td className="px-4 py-5">
 
-                      </div>
+                    <div className="flex gap-2">
 
-                    </td>
+                      <button
+                        onClick={() =>
+                          handleEdit(item, index)
+                        }
+                        className="bg-yellow-400 hover:bg-yellow-500 transition px-4 py-2 rounded-lg font-medium text-sm"
+                      >
+                        Update
+                      </button>
 
-                  </tr>
+                      <button
+                        onClick={() =>
+                          handleDelete(index)
+                        }
+                        className="bg-red-500 hover:bg-red-600 transition text-white px-4 py-2 rounded-lg font-medium text-sm"
+                      >
+                        Delete
+                      </button>
 
-                )
-              )}
+                    </div>
 
-            </tbody>
+                  </td>
 
-          </table>
+                </tr>
 
-        </div>
+              )
+            )}
+
+          </tbody>
+
+        </table>
 
       </div>
 

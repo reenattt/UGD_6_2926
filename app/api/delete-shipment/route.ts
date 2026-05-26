@@ -4,15 +4,15 @@ const sql = postgres(process.env.DATABASE_URL!, {
   ssl: "require",
 });
 
-export async function POST(request: Request) {
-
-  console.log("DELETE API CALLED");
+export async function DELETE(request: Request) {
 
   try {
 
     const body = await request.json();
 
-    // HAPUS RELASI DULU
+    console.log("DELETE SHIPMENT:", body.id);
+
+    // ================= DELETE RELATION =================
 
     await sql`
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
     `;
 
-    // BARU HAPUS SHIPMENT
+    // ================= DELETE MAIN SHIPMENT =================
 
     await sql`
 
@@ -49,16 +49,33 @@ export async function POST(request: Request) {
     `;
 
     return Response.json({
+
+      success: true,
+
       message: "Shipment deleted successfully",
+
     });
 
   } catch (error) {
 
-    console.log(error);
+    console.log("DELETE ERROR:", error);
 
     return Response.json(
-      { error: "Failed to delete shipment" },
-      { status: 500 }
+
+      {
+
+        success: false,
+
+        error: "Failed to delete shipment",
+
+      },
+
+      {
+
+        status: 500,
+
+      }
+
     );
 
   }

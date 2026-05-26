@@ -26,7 +26,8 @@ export async function POST(request: Request) {
         price,
         shipping_type,
         shipping_status,
-        notes
+        notes,
+        vehicle_id
 
       )
 
@@ -44,7 +45,8 @@ export async function POST(request: Request) {
         ${body.price},
         ${body.shipping_type},
         ${body.shipping_status},
-        ${body.notes}
+        ${body.notes},
+        ${body.vehicle_id}
 
       )
 
