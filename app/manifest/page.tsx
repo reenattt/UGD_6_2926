@@ -88,7 +88,7 @@ export default function Manifest() {
               ? "Boeing 737 Cargo"
               : "Airbus A330 Cargo",
 
-          time: item.shipping_date,
+          created_at: item.shipping_date,
 
         }));
 
@@ -766,6 +766,10 @@ export default function Manifest() {
               </th>
 
               <th className="px-4 py-4 text-left">
+                Created
+              </th>
+
+              <th className="px-4 py-4 text-left">
                 Status
               </th>
 
@@ -859,6 +863,16 @@ export default function Manifest() {
                     {Number(item.price).toLocaleString(
                       "id-ID"
                     )}
+
+                  </td>
+
+                  {/* CREATED DATE */}
+
+                  <td className="px-4 py-5 whitespace-nowrap">
+
+                    {new Date(
+                      item.created_at
+                    ).toLocaleDateString("id-ID")}
 
                   </td>
 

@@ -57,25 +57,68 @@ export default function DashboardPage() {
 
   );
 
-  // ================= WEEKLY CHART DUMMY =================
+  // ================= REAL WEEKLY DATA =================
 
   const weeklyData = [
 
-    { day: "Mon", total: 12 },
+    { day: "Mon", total: 0 },
 
-    { day: "Tue", total: 18 },
+    { day: "Tue", total: 0 },
 
-    { day: "Wed", total: 10 },
+    { day: "Wed", total: 0 },
 
-    { day: "Thu", total: 22 },
+    { day: "Thu", total: 0 },
 
-    { day: "Fri", total: 15 },
+    { day: "Fri", total: 0 },
 
-    { day: "Sat", total: 8 },
+    { day: "Sat", total: 0 },
 
-    { day: "Sun", total: 5 },
+    { day: "Sun", total: 0 },
 
   ];
+
+  shipments.forEach((item) => {
+
+    const date = new Date(item.shipping_date);
+
+    const day = date.getDay();
+
+    // Minggu = 0
+    // Senin = 1
+
+    switch (day) {
+
+      case 1:
+        weeklyData[0].total += 1;
+        break;
+
+      case 2:
+        weeklyData[1].total += 1;
+        break;
+
+      case 3:
+        weeklyData[2].total += 1;
+        break;
+
+      case 4:
+        weeklyData[3].total += 1;
+        break;
+
+      case 5:
+        weeklyData[4].total += 1;
+        break;
+
+      case 6:
+        weeklyData[5].total += 1;
+        break;
+
+      case 0:
+        weeklyData[6].total += 1;
+        break;
+
+    }
+
+  });
 
   return (
 
@@ -267,6 +310,10 @@ export default function DashboardPage() {
                 Price
               </th>
 
+              <th className="py-3 text-left">
+                Created
+              </th>
+
             </tr>
 
           </thead>
@@ -312,27 +359,27 @@ export default function DashboardPage() {
 
                     ${item.shipping_status === "Received"
 
-                      ? "bg-blue-100 text-blue-700"
+                        ? "bg-blue-100 text-blue-700"
 
-                      : item.shipping_status === "Loaded"
+                        : item.shipping_status === "Loaded"
 
-                      ? "bg-green-100 text-green-700"
+                          ? "bg-green-100 text-green-700"
 
-                      : item.shipping_status === "Sortation"
+                          : item.shipping_status === "Sortation"
 
-                      ? "bg-yellow-100 text-yellow-700"
+                            ? "bg-yellow-100 text-yellow-700"
 
-                      : item.shipping_status === "Arrived"
+                            : item.shipping_status === "Arrived"
 
-                      ? "bg-emerald-100 text-emerald-700"
+                              ? "bg-emerald-100 text-emerald-700"
 
-                      : item.shipping_status === "Delayed"
+                              : item.shipping_status === "Delayed"
 
-                      ? "bg-red-100 text-red-700"
+                                ? "bg-red-100 text-red-700"
 
-                      : "bg-gray-100 text-gray-700"
+                                : "bg-gray-100 text-gray-700"
 
-                    }
+                      }
 
                   `}
                   >
@@ -349,6 +396,14 @@ export default function DashboardPage() {
                   {Number(item.price).toLocaleString(
                     "id-ID"
                   )}
+
+                </td>
+
+                <td>
+
+                  {new Date(
+                    item.shipping_date
+                  ).toLocaleDateString("id-ID")}
 
                 </td>
 
