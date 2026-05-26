@@ -102,7 +102,23 @@ export default function Manifest() {
 
   const generateAWB = () => {
 
-    const nextNumber = shipments.length + 1;
+    if (shipments.length === 0) {
+
+      return "AWB001";
+
+    }
+
+    const numbers = shipments.map((item) =>
+
+      Number(
+        item.awb.replace("AWB", "")
+      )
+
+    );
+
+    const maxNumber = Math.max(...numbers);
+
+    const nextNumber = maxNumber + 1;
 
     return `AWB${String(nextNumber).padStart(3, "0")}`;
 
@@ -444,7 +460,7 @@ export default function Manifest() {
             setShowForm(true);
 
           }}
-          
+
           className="bg-blue-600 hover:bg-blue-700 transition text-white px-6 py-3 rounded-xl shadow-lg"
         >
           + Create Shipment
