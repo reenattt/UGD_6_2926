@@ -141,7 +141,9 @@ export default function Page() {
 
       {/* OVERLAY */}
 
-      <div className="absolute inset-0 bg-black/55"></div>
+      {/* OVERLAY */}
+
+      <div className="absolute inset-0 bg-gradient-to-r from-[#132868]/90 via-[#132868]/50 to-transparent"></div>
 
       {/* HERO */}
 
