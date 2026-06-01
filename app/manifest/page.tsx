@@ -2,6 +2,7 @@
 
 import DashboardLayout from "../ui/layout-dashboard";
 import { useEffect, useState } from "react";
+import { ITEM_CATEGORIES } from "../lib/definitions";
 
 export default function Manifest() {
 
@@ -14,6 +15,10 @@ export default function Manifest() {
 
   const [shipments, setShipments] =
     useState<any[]>([]);
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [generalError, setGeneralError] = useState("");
 
   // ================= FORM =================
 
@@ -35,7 +40,7 @@ export default function Manifest() {
 
     shipping_type: "Biasa",
 
-    shipping_status: "Received",
+    shipping_status: "Sortation",
 
     notes: "",
 
@@ -143,6 +148,31 @@ export default function Manifest() {
 
   const handleSubmit = async () => {
 
+    const newErrors: Record<string, string> = {};
+    if (!form.sender_name.trim()) newErrors.sender_name = "Sender Name is required";
+    if (!form.receiver_name.trim()) newErrors.receiver_name = "Receiver Name is required";
+    if (!form.phone.trim()) newErrors.phone = "Phone Number is required";
+    if (!form.origin.trim()) newErrors.origin = "Origin City is required";
+    if (!form.destination.trim()) newErrors.destination = "Destination City is required";
+    if (!form.commodity.trim()) newErrors.commodity = "Item Type is required";
+
+    if (!form.weight.trim()) {
+      newErrors.weight = "Weight is required";
+    } else {
+      const w = Number(form.weight);
+      if (isNaN(w) || w <= 0) {
+        newErrors.weight = "Weight must be a positive number";
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+    setGeneralError("");
+
     const newData = {
 
       awb: generateAWB(),
@@ -173,25 +203,32 @@ export default function Manifest() {
 
     };
 
-    const response = await fetch(
-      "/api/create-shipment",
-      {
+    try {
+      const response = await fetch(
+        "/api/create-shipment",
+        {
 
-        method: "POST",
+          method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-        },
+          headers: {
+            "Content-Type": "application/json",
+          },
 
-        body: JSON.stringify(newData),
+          body: JSON.stringify(newData),
 
+        }
+      );
+
+      const result = await response.json();
+      if (response.ok) {
+
+        location.reload();
+
+      } else {
+        setGeneralError(result.error || "Failed to create shipment");
       }
-    );
-
-    if (response.ok) {
-
-      location.reload();
-
+    } catch (err: any) {
+      setGeneralError(err.message || "Failed to create shipment");
     }
 
   };
@@ -204,6 +241,8 @@ export default function Manifest() {
   ) => {
 
     setEditingIndex(index);
+    setErrors({});
+    setGeneralError("");
 
     setForm({
 
@@ -241,6 +280,31 @@ export default function Manifest() {
 
     if (editingIndex === null) return;
 
+    const newErrors: Record<string, string> = {};
+    if (!form.sender_name.trim()) newErrors.sender_name = "Sender Name is required";
+    if (!form.receiver_name.trim()) newErrors.receiver_name = "Receiver Name is required";
+    if (!form.phone.trim()) newErrors.phone = "Phone Number is required";
+    if (!form.origin.trim()) newErrors.origin = "Origin City is required";
+    if (!form.destination.trim()) newErrors.destination = "Destination City is required";
+    if (!form.commodity.trim()) newErrors.commodity = "Item Type is required";
+
+    if (!form.weight.trim()) {
+      newErrors.weight = "Weight is required";
+    } else {
+      const w = Number(form.weight);
+      if (isNaN(w) || w <= 0) {
+        newErrors.weight = "Weight must be a positive number";
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+    setGeneralError("");
+
     const shipment = shipments[editingIndex];
 
     const updatedData = {
@@ -273,25 +337,32 @@ export default function Manifest() {
 
     };
 
-    const response = await fetch(
-      "/api/update-shipment",
-      {
+    try {
+      const response = await fetch(
+        "/api/update-shipment",
+        {
 
-        method: "PUT",
+          method: "PUT",
 
-        headers: {
-          "Content-Type": "application/json",
-        },
+          headers: {
+            "Content-Type": "application/json",
+          },
 
-        body: JSON.stringify(updatedData),
+          body: JSON.stringify(updatedData),
 
+        }
+      );
+
+      const result = await response.json();
+      if (response.ok) {
+
+        location.reload();
+
+      } else {
+        setGeneralError(result.error || "Failed to update shipment");
       }
-    );
-
-    if (response.ok) {
-
-      location.reload();
-
+    } catch (err: any) {
+      setGeneralError(err.message || "Failed to update shipment");
     }
 
   };
@@ -430,6 +501,8 @@ export default function Manifest() {
           onClick={() => {
 
             setEditingIndex(null);
+            setErrors({});
+            setGeneralError("");
 
             setForm({
 
@@ -449,7 +522,7 @@ export default function Manifest() {
 
               shipping_type: "Biasa",
 
-              shipping_status: "Received",
+              shipping_status: "Sortation",
 
               notes: "",
 
@@ -500,173 +573,279 @@ export default function Manifest() {
 
           <div className="grid grid-cols-2 gap-5">
 
-            <input
-              placeholder="Sender Name"
-              value={form.sender_name}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  sender_name: e.target.value,
-                })
-              }
-              className="border p-4 rounded-xl"
-            />
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-gray-700 mb-1">Sender Name</label>
+              <input
+                value={form.sender_name}
+                onChange={(e) => {
+                  setForm({
+                    ...form,
+                    sender_name: e.target.value,
+                  });
+                  if (errors.sender_name) {
+                    setErrors((prev) => {
+                      const copy = { ...prev };
+                      delete copy.sender_name;
+                      return copy;
+                    });
+                  }
+                }}
+                className={`border p-4 rounded-xl ${errors.sender_name ? "border-red-500" : ""}`}
+              />
+              {errors.sender_name && (
+                <p className="text-red-500 text-xs mt-1 font-medium">{errors.sender_name}</p>
+              )}
+            </div>
 
-            <input
-              placeholder="Receiver Name"
-              value={form.receiver_name}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  receiver_name: e.target.value,
-                })
-              }
-              className="border p-4 rounded-xl"
-            />
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-gray-700 mb-1">Receiver Name</label>
+              <input
+                value={form.receiver_name}
+                onChange={(e) => {
+                  setForm({
+                    ...form,
+                    receiver_name: e.target.value,
+                  });
+                  if (errors.receiver_name) {
+                    setErrors((prev) => {
+                      const copy = { ...prev };
+                      delete copy.receiver_name;
+                      return copy;
+                    });
+                  }
+                }}
+                className={`border p-4 rounded-xl ${errors.receiver_name ? "border-red-500" : ""}`}
+              />
+              {errors.receiver_name && (
+                <p className="text-red-500 text-xs mt-1 font-medium">{errors.receiver_name}</p>
+              )}
+            </div>
 
-            <input
-              placeholder="Phone Number"
-              value={form.phone}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  phone: e.target.value,
-                })
-              }
-              className="border p-4 rounded-xl"
-            />
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-gray-700 mb-1">Phone Number</label>
+              <input
+                value={form.phone}
+                onChange={(e) => {
+                  setForm({
+                    ...form,
+                    phone: e.target.value,
+                  });
+                  if (errors.phone) {
+                    setErrors((prev) => {
+                      const copy = { ...prev };
+                      delete copy.phone;
+                      return copy;
+                    });
+                  }
+                }}
+                className={`border p-4 rounded-xl ${errors.phone ? "border-red-500" : ""}`}
+              />
+              {errors.phone && (
+                <p className="text-red-500 text-xs mt-1 font-medium">{errors.phone}</p>
+              )}
+            </div>
 
-            <input
-              placeholder="Item Type"
-              value={form.commodity}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  commodity: e.target.value,
-                })
-              }
-              className="border p-4 rounded-xl"
-            />
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-gray-700 mb-1">Item Type</label>
+              <select
+                value={form.commodity}
+                onChange={(e) => {
+                  setForm({
+                    ...form,
+                    commodity: e.target.value,
+                  });
+                  if (errors.commodity) {
+                    setErrors((prev) => {
+                      const copy = { ...prev };
+                      delete copy.commodity;
+                      return copy;
+                    });
+                  }
+                }}
+                className={`border p-4 rounded-xl bg-white text-black outline-none ${errors.commodity ? "border-red-500" : ""}`}
+              >
+                <option value="">Select Item Type</option>
+                {Object.entries(ITEM_CATEGORIES).map(([category, items]) => (
+                  <optgroup key={category} label={category}>
+                    {items.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              {errors.commodity && (
+                <p className="text-red-500 text-xs mt-1 font-medium">{errors.commodity}</p>
+              )}
+            </div>
 
-            <input
-              placeholder="Origin City"
-              value={form.origin}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  origin: e.target.value,
-                })
-              }
-              className="border p-4 rounded-xl"
-            />
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-gray-700 mb-1">Origin City</label>
+              <input
+                value={form.origin}
+                onChange={(e) => {
+                  setForm({
+                    ...form,
+                    origin: e.target.value,
+                  });
+                  if (errors.origin) {
+                    setErrors((prev) => {
+                      const copy = { ...prev };
+                      delete copy.origin;
+                      return copy;
+                    });
+                  }
+                }}
+                className={`border p-4 rounded-xl ${errors.origin ? "border-red-500" : ""}`}
+              />
+              {errors.origin && (
+                <p className="text-red-500 text-xs mt-1 font-medium">{errors.origin}</p>
+              )}
+            </div>
 
-            <input
-              placeholder="Destination City"
-              value={form.destination}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  destination: e.target.value,
-                })
-              }
-              className="border p-4 rounded-xl"
-            />
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-gray-700 mb-1">Destination City</label>
+              <input
+                value={form.destination}
+                onChange={(e) => {
+                  setForm({
+                    ...form,
+                    destination: e.target.value,
+                  });
+                  if (errors.destination) {
+                    setErrors((prev) => {
+                      const copy = { ...prev };
+                      delete copy.destination;
+                      return copy;
+                    });
+                  }
+                }}
+                className={`border p-4 rounded-xl ${errors.destination ? "border-red-500" : ""}`}
+              />
+              {errors.destination && (
+                <p className="text-red-500 text-xs mt-1 font-medium">{errors.destination}</p>
+              )}
+            </div>
 
-            <input
-              type="number"
-              placeholder="Weight (kg)"
-              value={form.weight}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  weight: e.target.value,
-                })
-              }
-              className="border p-4 rounded-xl"
-            />
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-gray-700 mb-1">Weight (kg)</label>
+              <input
+                type="number"
+                value={form.weight}
+                onChange={(e) => {
+                  setForm({
+                    ...form,
+                    weight: e.target.value,
+                  });
+                  if (errors.weight) {
+                    setErrors((prev) => {
+                      const copy = { ...prev };
+                      delete copy.weight;
+                      return copy;
+                    });
+                  }
+                }}
+                className={`border p-4 rounded-xl ${errors.weight ? "border-red-500" : ""}`}
+              />
+              {errors.weight && (
+                <p className="text-red-500 text-xs mt-1 font-medium">{errors.weight}</p>
+              )}
+            </div>
 
-            <select
-              value={form.shipping_type}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  shipping_type: e.target.value,
-                })
-              }
-              className="border p-4 rounded-xl"
-            >
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-gray-700 mb-1">Shipment Type</label>
+              <select
+                value={form.shipping_type}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    shipping_type: e.target.value,
+                  })
+                }
+                className="border p-4 rounded-xl w-full bg-white text-black outline-none"
+              >
 
-              <option value="Biasa">
-                Biasa
-              </option>
-
-              <option value="Express">
-                Express
-              </option>
-
-              <option value="VVIP">
-                VVIP
-              </option>
-
-            </select>
-
-            <select
-              value={form.shipping_status}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  shipping_status: e.target.value,
-                })
-              }
-              className="border p-4 rounded-xl"
-            >
-
-              {statusList.map((status) => (
-
-                <option
-                  key={status}
-                  value={status}
-                >
-                  {status}
+                <option value="Biasa">
+                  Biasa
                 </option>
 
-              ))}
+                <option value="Express">
+                  Express
+                </option>
 
-            </select>
+                <option value="VVIP">
+                  VVIP
+                </option>
 
-            <select
-              value={form.vehicle_id}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  vehicle_id: e.target.value,
-                })
-              }
-              className="border p-4 rounded-xl"
-            >
+              </select>
+            </div>
 
-              <option value="1">
-                Boeing 737 Cargo
-              </option>
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-gray-700 mb-1">Status</label>
+              <select
+                value={form.shipping_status}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    shipping_status: e.target.value,
+                  })
+                }
+                className="border p-4 rounded-xl w-full bg-white text-black outline-none"
+              >
 
-              <option value="2">
-                Airbus A330 Cargo
-              </option>
+                {statusList.map((status) => (
 
-            </select>
+                  <option
+                    key={status}
+                    value={status}
+                  >
+                    {status}
+                  </option>
 
-            <textarea
-              placeholder="Notes / Description"
-              value={form.notes}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  notes: e.target.value,
-                })
-              }
-              className="border p-4 rounded-xl col-span-2"
-              rows={4}
-            />
+                ))}
+
+              </select>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-gray-700 mb-1">Vehicle</label>
+              <select
+                value={form.vehicle_id}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    vehicle_id: e.target.value,
+                  })
+                }
+                className="border p-4 rounded-xl w-full bg-white text-black outline-none"
+              >
+
+                <option value="1">
+                  Boeing 737 Cargo
+                </option>
+
+                <option value="2">
+                  Airbus A330 Cargo
+                </option>
+
+              </select>
+            </div>
+
+            <div className="flex flex-col col-span-2">
+              <label className="text-sm font-semibold text-gray-700 mb-1">Notes / Description</label>
+              <textarea
+                value={form.notes}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    notes: e.target.value,
+                  })
+                }
+                className="border p-4 rounded-xl w-full outline-none"
+                rows={4}
+              />
+            </div>
 
           </div>
 
@@ -682,6 +861,12 @@ export default function Manifest() {
             </h2>
 
           </div>
+
+          {generalError && (
+            <div className="mt-6 bg-red-50 p-5 rounded-xl text-red-700 font-medium">
+              {generalError}
+            </div>
+          )}
 
           {/* BUTTON */}
 
@@ -711,6 +896,8 @@ export default function Manifest() {
               onClick={() => {
                 setShowForm(false);
                 setEditingIndex(null);
+                setErrors({});
+                setGeneralError("");
               }}
               className="bg-gray-300 hover:bg-gray-400 transition px-6 py-3 rounded-xl"
             >

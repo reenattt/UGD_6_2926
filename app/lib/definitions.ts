@@ -86,3 +86,13 @@ export type InvoiceForm = {
   amount: number;
   status: 'pending' | 'paid';
 };
+
+export const ITEM_CATEGORIES: Record<string, string[]> = {
+  Documents: ["Letter", "Contract", "Certificate"],
+  Electronics: ["Laptop", "Smartphone", "Tablet"],
+  Fashion: ["Clothing", "Shoes", "Accessories"],
+  Food: ["Dry Food", "Snacks", "Beverages"],
+  Industrial: ["Machinery Parts", "Tools", "Equipment"],
+  Other: ["General Cargo"]
+};
+

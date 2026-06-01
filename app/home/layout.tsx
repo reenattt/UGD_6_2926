@@ -1,8 +1,8 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Dashboard | Sky Link Logistics",
-  description: "Manage air cargo logistics, track key metrics, and monitor operations from the Sky Link Logistics dashboard.",
+  title: "Home | Sky Link Logistics",
+  description: "Welcome to Sky Link Logistics, your premier partner for modern air cargo logistics and real-time shipment monitoring.",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

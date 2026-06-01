@@ -3,14 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../ui/navbar";
+import dynamic from "next/dynamic";
+
+// Load Leaflet map client-side only (requires window)
+const TrackingMap = dynamic(() => import("../ui/tracking-map"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+      <span className="text-slate-500 text-xs animate-pulse">Loading map…</span>
+    </div>
+  ),
+});
 
 export default function Page() {
-
-  const [showLogin, setShowLogin] = useState(false);
-
-  const [username, setUsername] = useState("");
-
-  const [password, setPassword] = useState("");
 
   const [awb, setAwb] = useState("");
 
@@ -18,33 +23,18 @@ export default function Page() {
 
   const [loading, setLoading] = useState(false);
 
+  const [awbError, setAwbError] = useState("");
+
   const router = useRouter();
-
-  // ================= LOGIN =================
-
-  const handleLogin = () => {
-
-    if (
-      username === "241712926" &&
-      password === "hajarsiweb"
-    ) {
-
-      router.push("/dashboard");
-
-    } else {
-
-      alert("Username atau Password salah");
-
-    }
-
-  };
-
-  // ================= TRACKING =================
 
   const handleTrack = async () => {
 
-    if (!awb) return;
+    if (!awb.trim()) {
+      setAwbError("AWB number cannot be empty");
+      return;
+    }
 
+    setAwbError("");
     setLoading(true);
 
     try {
@@ -177,7 +167,7 @@ export default function Page() {
             {/* GET STARTED */}
 
             <button
-              onClick={() => setShowLogin(true)}
+              onClick={() => router.push("/company-info")}
               className="bg-orange-500 px-10 py-4 rounded-full text-lg font-semibold hover:bg-orange-600 transition hover:scale-105"
             >
               Get Started
@@ -191,19 +181,10 @@ export default function Page() {
 
         <div className="w-[480px] rounded-3xl overflow-hidden shadow-2xl border border-white/20 backdrop-blur-xl bg-white/10">
 
-          {/* MAP */}
+          {/* LIVE FLIGHT MAP */}
 
-          <div className="h-56 w-full">
-
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d253840.49149349704!2d106.664701498253!3d-6.229728024631306!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f1c987ddf74f%3A0x301576d14feb9e0!2sJakarta!5e0!3m2!1sid!2sid!4v1716576400000!5m2!1sid!2sid"
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              loading="lazy"
-              allowFullScreen
-            ></iframe>
-
+          <div className="h-56 w-full overflow-hidden relative">
+            <TrackingMap compact shipment={result && result !== false ? result : null} />
           </div>
 
           {/* TRACKING */}
@@ -216,10 +197,21 @@ export default function Page() {
 
             <input
               value={awb}
-              onChange={(e) => setAwb(e.target.value)}
+              onChange={(e) => {
+                setAwb(e.target.value);
+                if (awbError) setAwbError("");
+              }}
               placeholder="Enter AWB Number"
-              className="w-full px-4 py-4 rounded-xl text-black mb-4 outline-none"
+              className={`w-full px-4 py-4 rounded-xl text-black mb-4 outline-none ${
+                awbError ? "border-2 border-red-500" : ""
+              }`}
             />
+
+            {awbError && (
+              <p className="text-red-400 text-xs -mt-2 mb-4 font-medium">
+                {awbError}
+              </p>
+            )}
 
             <button
               onClick={handleTrack}
@@ -401,68 +393,6 @@ export default function Page() {
           </div>
 
         </section>
-
-      )}
-
-      {/* LOGIN MODAL */}
-
-      {showLogin && (
-
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-
-          <div className="bg-[#1b1b1b]/90 border border-white/10 rounded-3xl p-8 w-[420px] text-white shadow-2xl">
-
-            {/* LOGO */}
-
-            <div className="flex justify-center mb-6">
-
-              <img
-                src="/bg_profil.png"
-                alt="logo"
-                className="w-20 h-20 rounded-full bg-white p-2"
-              />
-
-            </div>
-
-            <h2 className="text-3xl font-bold mb-6 text-center">
-
-              Login
-
-            </h2>
-
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-white text-black p-4 rounded-xl mb-4 outline-none"
-            />
-
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-white text-black p-4 rounded-xl mb-6 outline-none"
-            />
-
-            <button
-              onClick={handleLogin}
-              className="w-full bg-orange-500 text-white py-4 rounded-xl font-semibold hover:bg-orange-600 transition"
-            >
-              Login
-            </button>
-
-            <button
-              onClick={() => setShowLogin(false)}
-              className="w-full mt-4 text-gray-300 hover:text-white transition"
-            >
-              Close
-            </button>
-
-          </div>
-
-        </div>
 
       )}
 

@@ -3,9 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import { useState, useEffect } from "react";
+import LoginForm from "./login-form";
 
 export default function Navbar() {
   const path = usePathname();
+  const [showLogin, setShowLogin] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("login") === "true") {
+        setShowLogin(true);
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
+      }
+    }
+  }, []);
 
   const menus = [
     { name: "Home", href: "/home" },
@@ -34,12 +48,17 @@ export default function Navbar() {
       </div>
 
       {/* LOGO */}
-      <div className="absolute right-10 flex items-center gap-3">
+      <div 
+        onClick={() => setShowLogin(true)}
+        className="absolute right-10 flex items-center gap-3 cursor-pointer hover:opacity-85 transition"
+      >
         <div className="w-10 h-10 rounded-full overflow-hidden relative border-2 border-white">
           <Image src="/bg_profil.png" alt="logo" fill className="object-cover" />
         </div>
         <span className="font-semibold">Sky Link</span>
       </div>
+
+      {showLogin && <LoginForm onClose={() => setShowLogin(false)} />}
 
     </div>
   );
