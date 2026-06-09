@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { verifyUser, setClientSession } from "../lib/auth";
+import { Eye, EyeOff } from "lucide-react";
+import { createPortal } from "react-dom";
 
 export default function LoginForm({ onClose }: { onClose?: () => void }) {
   const router = useRouter();
@@ -10,6 +12,27 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutTimer, setLockoutTimer] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Handle Lockout countdown
+  useEffect(() => {
+    let timer: any;
+    if (lockoutTimer > 0) {
+      timer = setInterval(() => {
+        setLockoutTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (lockoutTimer === 0 && failedAttempts >= 3) {
+      setFailedAttempts(0); // reset after timeout
+    }
+    return () => clearInterval(timer);
+  }, [lockoutTimer, failedAttempts]);
 
   const handleLogin = () => {
     const newErrors: Record<string, string> = {};
@@ -31,16 +54,30 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
     if (sessionUser) {
       setClientSession(sessionUser);
       setErrors({});
+      setFailedAttempts(0);
       router.push("/dashboard");
       if (onClose) onClose();
     } else {
-      setErrors({ form: "Username atau password salah" });
+      const newAttempts = failedAttempts + 1;
+      setFailedAttempts(newAttempts);
+      if (newAttempts >= 3) {
+        setLockoutTimer(30);
+        setErrors({ form: "Too many failed attempts. Please wait 30 seconds." });
+      } else {
+        setErrors({ form: "Username atau password salah" });
+      }
     }
   };
 
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-50">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/10 rounded-2xl p-8 w-[380px] text-white shadow-2xl animate-fadeIn">
+  const modalContent = (
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-[9999] p-4 overflow-y-auto">
+      <form 
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleLogin();
+        }}
+        className="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/10 rounded-2xl p-8 w-full max-w-[380px] text-white shadow-2xl relative my-auto"
+      >
         {/* LOGO */}
         <div className="flex justify-center mb-4">
           <img
@@ -87,25 +124,35 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
         </div>
 
         {/* PASSWORD */}
-        <div className="mb-6">
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              if (errors.password) {
-                setErrors((prev) => {
-                  const copy = { ...prev };
-                  delete copy.password;
-                  return copy;
-                });
-              }
-            }}
-            className={`w-full p-3 rounded-lg bg-white text-black outline-none focus:ring-2 focus:ring-orange-400 ${
-              errors.password ? "border border-red-500" : ""
-            }`}
-          />
+        <div className="mb-6 relative">
+          <div className="relative flex items-center">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password) {
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.password;
+                    return copy;
+                  });
+                }
+              }}
+              className={`w-full p-3 pr-12 rounded-lg bg-white text-black outline-none focus:ring-2 focus:ring-orange-400 ${
+                errors.password ? "border border-red-500" : ""
+              }`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 text-gray-500 hover:text-gray-700 transition-colors focus:outline-none"
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
           {errors.password && (
             <p className="text-red-400 text-xs mt-1 font-medium">
               {errors.password}
@@ -115,10 +162,15 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
 
         {/* BUTTON */}
         <button
-          onClick={handleLogin}
-          className="w-full bg-orange-500 hover:bg-orange-600 transition p-3 rounded-lg font-semibold text-white"
+          type="submit"
+          disabled={lockoutTimer > 0}
+          className={`w-full transition p-3 rounded-lg font-semibold text-white ${
+            lockoutTimer > 0 
+              ? "bg-gray-600 cursor-not-allowed" 
+              : "bg-orange-500 hover:bg-orange-600"
+          }`}
         >
-          Login
+          {lockoutTimer > 0 ? `Please wait ${lockoutTimer}s` : "Login"}
         </button>
 
         {/* CLOSE */}
@@ -130,7 +182,10 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
             Close
           </p>
         )}
-      </div>
+      </form>
     </div>
   );
+
+  if (!mounted) return null;
+  return createPortal(modalContent, document.body);
 }

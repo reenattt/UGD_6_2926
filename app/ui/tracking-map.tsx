@@ -1,54 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
-// =====================================================================
-// AIRPORT DATA — Real-world coordinates for SE Asian cargo airports
-// =====================================================================
-const AIRPORTS: Record<string, { code: string; city: string; lat: number; lng: number }> = {
-  CGK: { code: "CGK", city: "Jakarta",    lat: -6.1256,  lng: 106.6559 },
-  SIN: { code: "SIN", city: "Singapore",  lat:  1.3644,  lng: 103.9915 },
-  HKG: { code: "HKG", city: "Hong Kong",  lat: 22.3080,  lng: 113.9185 },
-  BKK: { code: "BKK", city: "Bangkok",    lat: 13.6900,  lng: 100.7501 },
-  KUL: { code: "KUL", city: "Kuala Lumpur", lat: 2.7456, lng: 101.7099 },
-  DPS: { code: "DPS", city: "Bali",       lat: -8.7482,  lng: 115.1672 },
-  SUB: { code: "SUB", city: "Surabaya",   lat: -7.3798,  lng: 112.7870 },
-  BDO: { code: "BDO", city: "Bandung",    lat: -6.9007,  lng: 107.5762 },
-  KNO: { code: "KNO", city: "Medan",      lat:  3.6421,  lng:  98.8856 },
-  UPG: { code: "UPG", city: "Makassar",   lat: -5.0617,  lng: 119.5540 },
-  SRG: { code: "SRG", city: "Semarang",   lat: -6.9724,  lng: 110.3750 },
-  JOG: { code: "JOG", city: "Yogyakarta", lat: -7.7880,  lng: 110.4316 },
-  PKU: { code: "PKU", city: "Pekanbaru",  lat:  0.4608,  lng: 101.4449 },
-  BTH: { code: "BTH", city: "Batam",      lat:  1.1212,  lng: 104.1188 },
-  PNK: { code: "PNK", city: "Pontianak",  lat: -0.1503,  lng: 109.4035 },
-};
-
-// =====================================================================
-// ACTIVE FLIGHTS — Static Sky Link cargo routes
-// =====================================================================
-const ACTIVE_FLIGHTS = [
-  { id: "SL-001", origin: "CGK", dest: "SIN", progress: 0.10, speed: 0.00025, color: "#f97316" },
-  { id: "SL-002", origin: "BDO", dest: "SIN", progress: 0.35, speed: 0.00020, color: "#3b82f6" },
-  { id: "SL-003", origin: "SUB", dest: "HKG", progress: 0.60, speed: 0.00015, color: "#8b5cf6" },
-  { id: "SL-004", origin: "CGK", dest: "BKK", progress: 0.20, speed: 0.00022, color: "#06b6d4" },
-  { id: "SL-005", origin: "DPS", dest: "KUL", progress: 0.75, speed: 0.00028, color: "#10b981" },
-  { id: "SL-006", origin: "KNO", dest: "SIN", progress: 0.45, speed: 0.00018, color: "#f59e0b" },
-  { id: "SL-007", origin: "UPG", dest: "CGK", progress: 0.55, speed: 0.00021, color: "#ec4899" },
-  { id: "SL-008", origin: "SRG", dest: "CGK", progress: 0.30, speed: 0.00030, color: "#14b8a6" },
-];
-
-// =====================================================================
-// AIRPORT LOOKUP — maps city name / code to airport object
-// =====================================================================
-function resolveAirport(key: string) {
-  if (!key) return AIRPORTS.CGK;
-  const norm = key.trim().toUpperCase();
-  if (AIRPORTS[norm]) return AIRPORTS[norm];
-  const byCity = Object.values(AIRPORTS).find(
-    (a) => a.city.toUpperCase() === norm || norm.includes(a.city.toUpperCase())
-  );
-  return byCity || AIRPORTS.CGK;
-}
+import { useEffect, useRef, useState } from "react";
+import { AIRPORT_MASTER_DATA } from "../lib/airports";
 
 // =====================================================================
 // BEARING — compass heading from point A to point B
@@ -71,7 +24,7 @@ function lerp(a: number, b: number, t: number) {
 }
 
 // =====================================================================
-// AIRCRAFT DIV ICON — inline SVG emoji with rotation
+// AIRCRAFT DIV ICON
 // =====================================================================
 function makeAircraftIcon(L: any, bearing: number, color: string, highlighted = false, dimmed = false) {
   const size = highlighted ? 28 : 20;
@@ -129,16 +82,17 @@ function makeAirportIcon(L: any, code: string, highlighted = false, dimmed = fal
 interface TrackingMapProps {
   shipment?: any;    // null/undefined = show all flights; object = highlight searched shipment
   compact?: boolean; // true = home widget (smaller), false = full tracking page
+  globalShipments?: any[]; // Allow parents to pass data directly to skip fetch
 }
 
 // =====================================================================
 // TRACKING MAP COMPONENT
 // =====================================================================
-export default function TrackingMap({ shipment, compact = false }: TrackingMapProps) {
+export default function TrackingMap({ shipment, compact = false, globalShipments: initialShipments }: TrackingMapProps) {
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const rafRef = useRef<number>(0);
-  const flightStateRef = useRef(ACTIVE_FLIGHTS.map((f) => ({ ...f })));
+  const flightStateRef = useRef<any[]>([]);
   const aircraftMarkersRef = useRef<any[]>([]);
   const routeLinesRef = useRef<any[]>([]);
   const progressLinesRef = useRef<any[]>([]);
@@ -146,10 +100,46 @@ export default function TrackingMap({ shipment, compact = false }: TrackingMapPr
   const highlightedFlightRef = useRef<string | null>(null);
   const initializedRef = useRef(false);
 
-  // ---- 1. INITIALIZE MAP (runs once) --------------------------------
+  // Use either the prop or local state to store shipments
+  const [dbShipments, setDbShipments] = useState<any[] | null>(initialShipments || null);
+
   useEffect(() => {
+    if (initialShipments) return;
+    // Fetch live shipments from the DB
+    fetch('/api/shipments')
+      .then(r => r.json())
+      .then(data => setDbShipments(Array.isArray(data) ? data : []))
+      .catch(() => setDbShipments([]));
+  }, [initialShipments]);
+
+  // ---- 1. INITIALIZE MAP ONCE DATA IS READY -------------------------
+  useEffect(() => {
+    if (dbShipments === null) return; // Wait until fetch is complete
     if (initializedRef.current || !mapDivRef.current) return;
     initializedRef.current = true;
+
+    // Filter shipments that actually have coordinates and are active
+    const validShipments = dbShipments.filter(s => s.origin_lat && s.dest_lat && s.shipping_status !== "Delivered");
+    
+    // Build synthetic live flight logic from real database rows
+    const liveFlights = validShipments.map((s, idx) => {
+      const colors = ["#f97316", "#3b82f6", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#14b8a6"];
+      const idNum = parseInt(s.awb.replace(/\D/g, '')) || idx;
+      return {
+        id: s.awb,
+        origin: s.origin_city,
+        dest: s.destination_city,
+        progress: (idNum % 100) / 100, // pseudo-random deterministic start
+        speed: 0.00015 + ((idNum % 10) * 0.000015), // deterministic speed variation
+        color: colors[idNum % colors.length],
+        origLat: Number(s.origin_lat),
+        origLng: Number(s.origin_lng),
+        destLat: Number(s.dest_lat),
+        destLng: Number(s.dest_lng),
+      };
+    });
+    
+    flightStateRef.current = liveFlights;
 
     let L: any;
     let map: any;
@@ -171,12 +161,11 @@ export default function TrackingMap({ shipment, compact = false }: TrackingMapPr
 
       mapRef.current = map;
 
-      // Dark tile layer (Carto Dark Matter for FlightRadar feel)
+      // Dark tile layer
       L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
         {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+          attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
           subdomains: "abcd",
           maxZoom: 19,
         }
@@ -184,13 +173,13 @@ export default function TrackingMap({ shipment, compact = false }: TrackingMapPr
 
       // ---- Draw airports ----
       const usedAirportCodes = new Set<string>();
-      flightStateRef.current.forEach((f) => {
+      liveFlights.forEach((f) => {
         usedAirportCodes.add(f.origin);
         usedAirportCodes.add(f.dest);
       });
 
       usedAirportCodes.forEach((code) => {
-        const airport = AIRPORTS[code];
+        const airport = AIRPORT_MASTER_DATA[code];
         if (!airport) return;
         const marker = L.marker([airport.lat, airport.lng], {
           icon: makeAirportIcon(L, code),
@@ -205,14 +194,9 @@ export default function TrackingMap({ shipment, compact = false }: TrackingMapPr
         airportMarkersRef.current[code] = marker;
       });
 
-      // ---- Draw routes + aircraft for each flight ----
-      flightStateRef.current.forEach((flight, i) => {
-        const orig = AIRPORTS[flight.origin];
-        const dest = AIRPORTS[flight.dest];
-        if (!orig || !dest) return;
-
-        // Full dashed route line
-        const routeLine = L.polyline([[orig.lat, orig.lng], [dest.lat, dest.lng]], {
+      // ---- Draw routes + aircraft for each LIVE shipment ----
+      liveFlights.forEach((flight, i) => {
+        const routeLine = L.polyline([[flight.origLat, flight.origLng], [flight.destLat, flight.destLng]], {
           color: flight.color,
           weight: 1.5,
           opacity: 0.35,
@@ -220,7 +204,6 @@ export default function TrackingMap({ shipment, compact = false }: TrackingMapPr
         }).addTo(map);
         routeLinesRef.current[i] = routeLine;
 
-        // Progress line (solid, shorter)
         const progressLine = L.polyline([], {
           color: flight.color,
           weight: 2.5,
@@ -228,10 +211,9 @@ export default function TrackingMap({ shipment, compact = false }: TrackingMapPr
         }).addTo(map);
         progressLinesRef.current[i] = progressLine;
 
-        // Initial bearing
-        const bearing = getBearing(orig.lat, orig.lng, dest.lat, dest.lng);
-        const lat = lerp(orig.lat, dest.lat, flight.progress);
-        const lng = lerp(orig.lng, dest.lng, flight.progress);
+        const bearing = getBearing(flight.origLat, flight.origLng, flight.destLat, flight.destLng);
+        const lat = lerp(flight.origLat, flight.destLat, flight.progress);
+        const lng = lerp(flight.origLng, flight.destLng, flight.progress);
 
         const marker = L.marker([lat, lng], {
           icon: makeAircraftIcon(L, bearing, flight.color),
@@ -242,7 +224,7 @@ export default function TrackingMap({ shipment, compact = false }: TrackingMapPr
             `<div style="font-family:monospace;font-size:12px;line-height:1.6">
               <strong style="color:${flight.color}">${flight.id}</strong><br/>
               <span style="color:#94a3b8">Route:</span> ${flight.origin} ✈ ${flight.dest}<br/>
-              <span style="color:#94a3b8">Status:</span> In Flight
+              <span style="color:#94a3b8">Status:</span> Live DB Tracking
             </div>`,
             { className: "leaflet-popup-dark" }
           );
@@ -253,36 +235,29 @@ export default function TrackingMap({ shipment, compact = false }: TrackingMapPr
       function animate() {
         rafRef.current = requestAnimationFrame(animate);
         flightStateRef.current.forEach((flight, i) => {
-          const orig = AIRPORTS[flight.origin];
-          const dest = AIRPORTS[flight.dest];
-          if (!orig || !dest) return;
-
           flight.progress += flight.speed;
           if (flight.progress > 1) flight.progress = 0;
 
-          const lat = lerp(orig.lat, dest.lat, flight.progress);
-          const lng = lerp(orig.lng, dest.lng, flight.progress);
-          const bearing = getBearing(orig.lat, orig.lng, dest.lat, dest.lng);
+          const lat = lerp(flight.origLat, flight.destLat, flight.progress);
+          const lng = lerp(flight.origLng, flight.destLng, flight.progress);
+          const bearing = getBearing(flight.origLat, flight.origLng, flight.destLat, flight.destLng);
 
           const aircraftMarker = aircraftMarkersRef.current[i];
           if (!aircraftMarker) return;
 
           aircraftMarker.setLatLng([lat, lng]);
 
-          // Determine highlight/dim state
           const isHighlighted = highlightedFlightRef.current === flight.id;
-          const isDimmed =
-            highlightedFlightRef.current !== null && !isHighlighted;
+          const isDimmed = highlightedFlightRef.current !== null && !isHighlighted;
 
           aircraftMarker.setIcon(
             makeAircraftIcon(L, bearing, flight.color, isHighlighted, isDimmed)
           );
 
-          // Update progress line
           const progressLine = progressLinesRef.current[i];
           if (progressLine) {
             progressLine.setLatLngs([
-              [orig.lat, orig.lng],
+              [flight.origLat, flight.origLng],
               [lat, lng],
             ]);
           }
@@ -299,24 +274,16 @@ export default function TrackingMap({ shipment, compact = false }: TrackingMapPr
         initializedRef.current = false;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [dbShipments, compact]);
 
-  // ---- 2. RESPOND TO SHIPMENT PROP CHANGES -------------------------
+  // ---- 2. RESPOND TO SEARCH PROP CHANGES -------------------------
   useEffect(() => {
-    if (!mapRef.current) return;
-
-    const L = (window as any).L || null;
-    // We need to re-import L for icon updates — use the stored ref instead
-    // Access flight states and markers directly via refs
+    if (!mapRef.current || !dbShipments) return;
 
     if (!shipment) {
-      // Reset: un-highlight everything
+      // Reset Highlight
       highlightedFlightRef.current = null;
-
-      // Reset airport markers
       Object.entries(airportMarkersRef.current).forEach(([, marker]) => {
-        // We can't easily rebuild icons without L here — just update opacity via element
         const el = marker.getElement();
         if (el) {
           const div = el.querySelector("div");
@@ -328,39 +295,32 @@ export default function TrackingMap({ shipment, compact = false }: TrackingMapPr
           }
         }
       });
-
-      // Reset route lines
       routeLinesRef.current.forEach((line) => {
-        if (line) {
-          line.setStyle({ opacity: 0.35, weight: 1.5 });
-        }
+        if (line) line.setStyle({ opacity: 0.35, weight: 1.5 });
       });
-
       return;
     }
 
-    // Resolve origin + destination airport codes from shipment
-    const origAirport = resolveAirport(shipment.origin_city);
-    const destAirport = resolveAirport(shipment.destination_city);
+    const origCode = shipment.origin_city;
+    const destCode = shipment.destination_city;
 
-    // Find the best matching flight
+    // Find the flight in our active DB list
     let matchedFlightIndex = -1;
     flightStateRef.current.forEach((f, i) => {
-      if (f.origin === origAirport.code && f.dest === destAirport.code) {
+      if (f.id === shipment.awb) {
         matchedFlightIndex = i;
       }
     });
 
-    // If no exact match, use SL-001 as fallback
-    if (matchedFlightIndex === -1) matchedFlightIndex = 0;
-
-    const matchedFlight = flightStateRef.current[matchedFlightIndex];
-    highlightedFlightRef.current = matchedFlight.id;
+    if (matchedFlightIndex !== -1) {
+      const matchedFlight = flightStateRef.current[matchedFlightIndex];
+      highlightedFlightRef.current = matchedFlight.id;
+    }
 
     // Highlight airport markers via DOM
     Object.entries(airportMarkersRef.current).forEach(([code, marker]) => {
-      const isOrigin = code === origAirport.code;
-      const isDest = code === destAirport.code;
+      const isOrigin = code === origCode;
+      const isDest = code === destCode;
       const el = marker.getElement();
       if (el) {
         const div = el.querySelector("div");
@@ -393,30 +353,30 @@ export default function TrackingMap({ shipment, compact = false }: TrackingMapPr
     });
 
     // Fly map to route bounds
-    const orig = AIRPORTS[matchedFlight.origin];
-    const dest = AIRPORTS[matchedFlight.dest];
-    if (orig && dest && mapRef.current) {
+    if (shipment.origin_lat && shipment.dest_lat && mapRef.current) {
+      const origLat = Number(shipment.origin_lat);
+      const origLng = Number(shipment.origin_lng);
+      const destLat = Number(shipment.dest_lat);
+      const destLng = Number(shipment.dest_lng);
+      
       const bounds = [
-        [Math.min(orig.lat, dest.lat) - 1, Math.min(orig.lng, dest.lng) - 2],
-        [Math.max(orig.lat, dest.lat) + 1, Math.max(orig.lng, dest.lng) + 2],
+        [Math.min(origLat, destLat) - 1, Math.min(origLng, destLng) - 2],
+        [Math.max(origLat, destLat) + 1, Math.max(origLng, destLng) + 2],
       ];
-      mapRef.current.fitBounds(bounds, { padding: [30, 30], animate: true });
+      mapRef.current.flyToBounds(bounds, {
+        padding: [50, 50],
+        duration: 1.5,
+        easeLinearity: 0.25,
+      });
     }
-
-    // Open popup on matched aircraft after a small delay
-    setTimeout(() => {
-      const marker = aircraftMarkersRef.current[matchedFlightIndex];
-      if (marker && mapRef.current) {
-        marker.openPopup();
-      }
-    }, 600);
-  }, [shipment]);
+  }, [shipment, dbShipments]);
 
   return (
     <div
       ref={mapDivRef}
-      className="w-full h-full"
-      style={{ background: "#0f172a" }}
+      className={`w-full h-full bg-slate-900 ${
+        !compact ? "rounded-b-2xl" : ""
+      }`}
     />
   );
 }

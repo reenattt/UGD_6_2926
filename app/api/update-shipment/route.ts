@@ -1,7 +1,8 @@
 import postgres from "postgres";
 import { cookies } from "next/headers";
+import { resolveAirport } from "../../lib/airports";
 
-const sql = postgres(process.env.DATABASE_URL!, {
+const sql = postgres(process.env.DATABASE_URL || process.env.POSTGRES_URL!, {
   ssl: "require",
 });
 
@@ -50,6 +51,10 @@ export async function PUT(request: Request) {
       return Response.json({ error: "Price must be a positive number" }, { status: 400 });
     }
 
+    const shipmentStatus = body.shipping_status || "Received";
+    const originApt = resolveAirport(body.origin_city);
+    const destApt = resolveAirport(body.destination_city);
+
     await sql`
       UPDATE shipments
       SET
@@ -62,10 +67,22 @@ export async function PUT(request: Request) {
         weight = ${weight},
         price = ${price},
         shipping_type = ${body.shipping_type || "Biasa"},
-        shipping_status = ${body.shipping_status || "Received"},
+        shipping_status = ${shipmentStatus},
         notes = ${body.notes || ""},
-        vehicle_id = ${body.vehicle_id ? Number(body.vehicle_id) : null}
+        vehicle_id = ${body.vehicle_id ? Number(body.vehicle_id) : null},
+        customer_id = ${body.customer_id ? Number(body.customer_id) : null},
+        origin_lat = ${originApt.lat},
+        origin_lng = ${originApt.lng},
+        dest_lat = ${destApt.lat},
+        dest_lng = ${destApt.lng}
       WHERE id = ${body.id}
+    `;
+
+    // Only insert a new tracking log if the status changed.
+    // For simplicity, we just insert the new status log for the audit.
+    await sql`
+      INSERT INTO tracking_logs (shipment_id, status)
+      VALUES (${body.id}, ${shipmentStatus})
     `;
 
     return Response.json({
@@ -84,4 +101,4 @@ export async function PUT(request: Request) {
       }
     );
   }
-}
+}

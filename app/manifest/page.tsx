@@ -3,6 +3,8 @@
 import DashboardLayout from "../ui/layout-dashboard";
 import { useEffect, useState } from "react";
 import { ITEM_CATEGORIES } from "../lib/definitions";
+import { AIRPORT_MASTER_DATA } from "../lib/airports";
+import { SearchableSelect } from "../ui/searchable-select";
 
 export default function Manifest() {
 
@@ -12,6 +14,8 @@ export default function Manifest() {
     useState<number | null>(null);
 
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   const [shipments, setShipments] =
     useState<any[]>([]);
@@ -31,7 +35,6 @@ export default function Manifest() {
     phone: "",
 
     origin: "",
-
     destination: "",
 
     commodity: "",
@@ -152,8 +155,8 @@ export default function Manifest() {
     if (!form.sender_name.trim()) newErrors.sender_name = "Sender Name is required";
     if (!form.receiver_name.trim()) newErrors.receiver_name = "Receiver Name is required";
     if (!form.phone.trim()) newErrors.phone = "Phone Number is required";
-    if (!form.origin.trim()) newErrors.origin = "Origin City is required";
-    if (!form.destination.trim()) newErrors.destination = "Destination City is required";
+    if (!form.origin.trim()) newErrors.origin = "Origin Airport is required";
+    if (!form.destination.trim()) newErrors.destination = "Destination Airport is required";
     if (!form.commodity.trim()) newErrors.commodity = "Item Type is required";
 
     if (!form.weight.trim()) {
@@ -252,9 +255,9 @@ export default function Manifest() {
 
       phone: item.phone,
 
-      origin: item.origin,
+      origin: item.origin_city || "",
 
-      destination: item.destination,
+      destination: item.destination_city || "",
 
       commodity: item.commodity,
 
@@ -425,8 +428,11 @@ export default function Manifest() {
       item.commodity
         .toLowerCase()
         .includes(search.toLowerCase())
-
     );
+
+  const totalPages = Math.ceil(filteredShipments.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedShipments = filteredShipments.slice(startIndex, startIndex + itemsPerPage);
 
   // ================= STATUS STYLE =================
 
@@ -542,26 +548,34 @@ export default function Manifest() {
       </div>
 
       {/* SEARCH */}
-
-      <div className="bg-white rounded-2xl shadow-sm p-5 mb-8 border">
-
+      <div className="bg-white p-2 rounded-2xl shadow-md mb-8 flex gap-2 border border-slate-200 focus-within:ring-4 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+        <div className="pl-6 pr-2 py-4 flex items-center text-slate-400">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
         <input
           type="text"
-          placeholder="Search AWB / Sender / Receiver / Commodity"
+          placeholder="Search AWBs, Senders, Destinations..."
+          className="flex-1 bg-transparent py-4 pr-4 outline-none font-medium text-slate-800 text-base placeholder:text-slate-400"
           value={search}
-          onChange={(e) =>
-            setSearch(e.target.value)
-          }
-          className="w-full border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition p-4 rounded-xl outline-none"
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setCurrentPage(1);
+          }}
         />
-
       </div>
 
       {/* FORM */}
 
       {showForm && (
 
-        <div className="bg-white p-8 rounded-2xl shadow-lg mb-8 border">
+        <form 
+          className="bg-white p-8 rounded-2xl shadow-lg mb-8 border"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (editingIndex !== null) handleUpdateShipment();
+            else handleSubmit();
+          }}
+        >
 
           <h2 className="text-2xl font-bold text-gray-800 mb-6">
 
@@ -571,551 +585,404 @@ export default function Manifest() {
 
           </h2>
 
-          <div className="grid grid-cols-2 gap-5">
 
-            <div className="flex flex-col">
-              <label className="text-sm font-semibold text-gray-700 mb-1">Sender Name</label>
-              <input
-                value={form.sender_name}
-                onChange={(e) => {
-                  setForm({
-                    ...form,
-                    sender_name: e.target.value,
-                  });
-                  if (errors.sender_name) {
-                    setErrors((prev) => {
-                      const copy = { ...prev };
-                      delete copy.sender_name;
-                      return copy;
-                    });
-                  }
-                }}
-                className={`border p-4 rounded-xl ${errors.sender_name ? "border-red-500" : ""}`}
-              />
-              {errors.sender_name && (
-                <p className="text-red-500 text-xs mt-1 font-medium">{errors.sender_name}</p>
-              )}
+          <div className="space-y-8">
+            
+            {/* SENDER & RECEIVER */}
+            <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2">
+                <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+                Customer Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-slate-700 mb-2">Sender Name</label>
+                  <input
+                    value={form.sender_name}
+                    placeholder="e.g. PT Logistics Indo"
+                    onChange={(e) => {
+                      setForm({ ...form, sender_name: e.target.value });
+                      if (errors.sender_name) setErrors(prev => ({ ...prev, sender_name: "" }));
+                    }}
+                    className={`border px-4 py-3 bg-white text-slate-900 placeholder:text-slate-400 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all ${errors.sender_name ? "border-red-500" : "border-slate-200"}`}
+                  />
+                  {errors.sender_name && <p className="text-red-500 text-xs mt-1 font-medium">{errors.sender_name}</p>}
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-slate-700 mb-2">Receiver Name</label>
+                  <input
+                    value={form.receiver_name}
+                    placeholder="e.g. John Doe"
+                    onChange={(e) => {
+                      setForm({ ...form, receiver_name: e.target.value });
+                      if (errors.receiver_name) setErrors(prev => ({ ...prev, receiver_name: "" }));
+                    }}
+                    className={`border px-4 py-3 bg-white text-slate-900 placeholder:text-slate-400 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all ${errors.receiver_name ? "border-red-500" : "border-slate-200"}`}
+                  />
+                  {errors.receiver_name && <p className="text-red-500 text-xs mt-1 font-medium">{errors.receiver_name}</p>}
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-slate-700 mb-2">Phone Number</label>
+                  <input
+                    value={form.phone}
+                    placeholder="+62..."
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const numericVal = val.replace(/\D/g, '');
+                      if (numericVal.length > 12) {
+                        setErrors(prev => ({ ...prev, phone: "Phone number cannot exceed 12 digits." }));
+                        setForm({ ...form, phone: numericVal.slice(0, 12) });
+                      } else {
+                        setErrors(prev => ({ ...prev, phone: "" }));
+                        setForm({ ...form, phone: numericVal });
+                      }
+                    }}
+                    className={`border px-4 py-3 bg-white text-slate-900 placeholder:text-slate-400 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all ${errors.phone ? "border-red-500" : "border-slate-200"}`}
+                  />
+                  {errors.phone && <p className="text-red-500 text-xs mt-1 font-medium">{errors.phone}</p>}
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-col">
-              <label className="text-sm font-semibold text-gray-700 mb-1">Receiver Name</label>
-              <input
-                value={form.receiver_name}
-                onChange={(e) => {
-                  setForm({
-                    ...form,
-                    receiver_name: e.target.value,
-                  });
-                  if (errors.receiver_name) {
-                    setErrors((prev) => {
-                      const copy = { ...prev };
-                      delete copy.receiver_name;
-                      return copy;
-                    });
-                  }
-                }}
-                className={`border p-4 rounded-xl ${errors.receiver_name ? "border-red-500" : ""}`}
-              />
-              {errors.receiver_name && (
-                <p className="text-red-500 text-xs mt-1 font-medium">{errors.receiver_name}</p>
-              )}
+            {/* ROUTE INFORMATION */}
+            <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2">
+                <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                Route Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* ORIGIN */}
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700 mb-2 block">Origin Airport</label>
+                    <SearchableSelect
+                      options={Object.values(AIRPORT_MASTER_DATA).map(apt => ({ label: `${apt.code} - ${apt.city}`, value: apt.code }))}
+                      value={form.origin}
+                      onChange={(val) => {
+                        setForm({ ...form, origin: val });
+                        if (errors.origin) setErrors(prev => ({ ...prev, origin: "" }));
+                      }}
+                      placeholder="Select Origin Airport..."
+                      searchPlaceholder="Search airports..."
+                      error={!!errors.origin}
+                    />
+                    {errors.origin && <p className="text-red-500 text-xs mt-1 font-medium">{errors.origin}</p>}
+                  </div>
+                </div>
+
+                {/* DESTINATION */}
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700 mb-2 block">Destination Airport</label>
+                    <SearchableSelect
+                      options={Object.values(AIRPORT_MASTER_DATA).map(apt => ({ label: `${apt.code} - ${apt.city}`, value: apt.code }))}
+                      value={form.destination}
+                      onChange={(val) => {
+                        setForm({ ...form, destination: val });
+                        if (errors.destination) setErrors(prev => ({ ...prev, destination: "" }));
+                      }}
+                      placeholder="Select Destination Airport..."
+                      searchPlaceholder="Search airports..."
+                      error={!!errors.destination}
+                    />
+                    {errors.destination && <p className="text-red-500 text-xs mt-1 font-medium">{errors.destination}</p>}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-col">
-              <label className="text-sm font-semibold text-gray-700 mb-1">Phone Number</label>
-              <input
-                value={form.phone}
-                onChange={(e) => {
-                  setForm({
-                    ...form,
-                    phone: e.target.value,
-                  });
-                  if (errors.phone) {
-                    setErrors((prev) => {
-                      const copy = { ...prev };
-                      delete copy.phone;
-                      return copy;
-                    });
-                  }
-                }}
-                className={`border p-4 rounded-xl ${errors.phone ? "border-red-500" : ""}`}
-              />
-              {errors.phone && (
-                <p className="text-red-500 text-xs mt-1 font-medium">{errors.phone}</p>
-              )}
+            {/* SHIPMENT & TRANSPORT */}
+            <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2">
+                <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span>
+                Shipment & Transport Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-slate-700 mb-2">Item Type</label>
+                  <SearchableSelect
+                    options={Object.values(ITEM_CATEGORIES).flat().map(item => ({ label: item, value: item }))}
+                    value={form.commodity}
+                    onChange={(val) => {
+                      setForm({ ...form, commodity: val });
+                      if (errors.commodity) setErrors(prev => ({ ...prev, commodity: "" }));
+                    }}
+                    placeholder="Select Category"
+                    searchPlaceholder="Search category..."
+                    error={!!errors.commodity}
+                  />
+                  {errors.commodity && <p className="text-red-500 text-xs mt-1 font-medium">{errors.commodity}</p>}
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-slate-700 mb-2">Weight (kg)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 5.5"
+                    value={form.weight}
+                    onChange={(e) => {
+                      setForm({ ...form, weight: e.target.value });
+                      if (errors.weight) setErrors(prev => ({ ...prev, weight: "" }));
+                    }}
+                    className={`border px-4 py-3 bg-white text-slate-900 placeholder:text-slate-400 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all ${errors.weight ? "border-red-500" : "border-slate-200"}`}
+                  />
+                  {errors.weight && <p className="text-red-500 text-xs mt-1 font-medium">{errors.weight}</p>}
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-slate-700 mb-2">Shipment Type</label>
+                  <SearchableSelect
+                    options={[
+                      { label: "Biasa (Standard)", value: "Biasa" },
+                      { label: "Express", value: "Express" },
+                      { label: "VVIP Priority", value: "VVIP" }
+                    ]}
+                    value={form.shipping_type}
+                    onChange={(val) => setForm({ ...form, shipping_type: val })}
+                    placeholder="Select Shipment Type"
+                    searchPlaceholder="Search..."
+                  />
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-slate-700 mb-2">Aircraft Allocation</label>
+                  <SearchableSelect
+                    options={[
+                      { label: "Boeing 737 Cargo", value: "1" },
+                      { label: "Airbus A330 Cargo", value: "2" }
+                    ]}
+                    value={form.vehicle_id}
+                    onChange={(val) => setForm({ ...form, vehicle_id: val })}
+                    placeholder="Select Aircraft"
+                    searchPlaceholder="Search aircraft..."
+                  />
+                </div>
+
+                <div className="flex flex-col md:col-span-2">
+                  <label className="text-sm font-semibold text-slate-700 mb-2">Current Status</label>
+                  <SearchableSelect
+                    options={statusList.map(status => ({ label: status, value: status }))}
+                    value={form.shipping_status}
+                    onChange={(val) => setForm({ ...form, shipping_status: val })}
+                    placeholder="Select Status"
+                    searchPlaceholder="Search status..."
+                  />
+                </div>
+
+                <div className="flex flex-col md:col-span-2">
+                  <label className="text-sm font-semibold text-slate-700 mb-2">Internal Notes</label>
+                  <input
+                    value={form.notes}
+                    placeholder="Optional descriptions or instructions..."
+                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                    className="border px-4 py-3 bg-white text-slate-900 placeholder:text-slate-400 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
             </div>
-
-            <div className="flex flex-col">
-              <label className="text-sm font-semibold text-gray-700 mb-1">Item Type</label>
-              <select
-                value={form.commodity}
-                onChange={(e) => {
-                  setForm({
-                    ...form,
-                    commodity: e.target.value,
-                  });
-                  if (errors.commodity) {
-                    setErrors((prev) => {
-                      const copy = { ...prev };
-                      delete copy.commodity;
-                      return copy;
-                    });
-                  }
-                }}
-                className={`border p-4 rounded-xl bg-white text-black outline-none ${errors.commodity ? "border-red-500" : ""}`}
-              >
-                <option value="">Select Item Type</option>
-                {Object.entries(ITEM_CATEGORIES).map(([category, items]) => (
-                  <optgroup key={category} label={category}>
-                    {items.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-              {errors.commodity && (
-                <p className="text-red-500 text-xs mt-1 font-medium">{errors.commodity}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-sm font-semibold text-gray-700 mb-1">Origin City</label>
-              <input
-                value={form.origin}
-                onChange={(e) => {
-                  setForm({
-                    ...form,
-                    origin: e.target.value,
-                  });
-                  if (errors.origin) {
-                    setErrors((prev) => {
-                      const copy = { ...prev };
-                      delete copy.origin;
-                      return copy;
-                    });
-                  }
-                }}
-                className={`border p-4 rounded-xl ${errors.origin ? "border-red-500" : ""}`}
-              />
-              {errors.origin && (
-                <p className="text-red-500 text-xs mt-1 font-medium">{errors.origin}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-sm font-semibold text-gray-700 mb-1">Destination City</label>
-              <input
-                value={form.destination}
-                onChange={(e) => {
-                  setForm({
-                    ...form,
-                    destination: e.target.value,
-                  });
-                  if (errors.destination) {
-                    setErrors((prev) => {
-                      const copy = { ...prev };
-                      delete copy.destination;
-                      return copy;
-                    });
-                  }
-                }}
-                className={`border p-4 rounded-xl ${errors.destination ? "border-red-500" : ""}`}
-              />
-              {errors.destination && (
-                <p className="text-red-500 text-xs mt-1 font-medium">{errors.destination}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-sm font-semibold text-gray-700 mb-1">Weight (kg)</label>
-              <input
-                type="number"
-                value={form.weight}
-                onChange={(e) => {
-                  setForm({
-                    ...form,
-                    weight: e.target.value,
-                  });
-                  if (errors.weight) {
-                    setErrors((prev) => {
-                      const copy = { ...prev };
-                      delete copy.weight;
-                      return copy;
-                    });
-                  }
-                }}
-                className={`border p-4 rounded-xl ${errors.weight ? "border-red-500" : ""}`}
-              />
-              {errors.weight && (
-                <p className="text-red-500 text-xs mt-1 font-medium">{errors.weight}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-sm font-semibold text-gray-700 mb-1">Shipment Type</label>
-              <select
-                value={form.shipping_type}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    shipping_type: e.target.value,
-                  })
-                }
-                className="border p-4 rounded-xl w-full bg-white text-black outline-none"
-              >
-
-                <option value="Biasa">
-                  Biasa
-                </option>
-
-                <option value="Express">
-                  Express
-                </option>
-
-                <option value="VVIP">
-                  VVIP
-                </option>
-
-              </select>
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-sm font-semibold text-gray-700 mb-1">Status</label>
-              <select
-                value={form.shipping_status}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    shipping_status: e.target.value,
-                  })
-                }
-                className="border p-4 rounded-xl w-full bg-white text-black outline-none"
-              >
-
-                {statusList.map((status) => (
-
-                  <option
-                    key={status}
-                    value={status}
-                  >
-                    {status}
-                  </option>
-
-                ))}
-
-              </select>
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-sm font-semibold text-gray-700 mb-1">Vehicle</label>
-              <select
-                value={form.vehicle_id}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    vehicle_id: e.target.value,
-                  })
-                }
-                className="border p-4 rounded-xl w-full bg-white text-black outline-none"
-              >
-
-                <option value="1">
-                  Boeing 737 Cargo
-                </option>
-
-                <option value="2">
-                  Airbus A330 Cargo
-                </option>
-
-              </select>
-            </div>
-
-            <div className="flex flex-col col-span-2">
-              <label className="text-sm font-semibold text-gray-700 mb-1">Notes / Description</label>
-              <textarea
-                value={form.notes}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    notes: e.target.value,
-                  })
-                }
-                className="border p-4 rounded-xl w-full outline-none"
-                rows={4}
-              />
-            </div>
-
+            
           </div>
 
-          {/* PRICE */}
-
-          <div className="mt-6 bg-blue-50 p-5 rounded-xl">
-
-            <h2 className="text-2xl font-bold text-blue-700">
-
-              Total Price : Rp
-              {totalPrice.toLocaleString("id-ID")}
-
-            </h2>
-
-          </div>
-
-          {generalError && (
-            <div className="mt-6 bg-red-50 p-5 rounded-xl text-red-700 font-medium">
-              {generalError}
+          {/* PRICE CARD */}
+          <div className="mt-8 bg-green-50/50 border border-green-200 p-6 rounded-2xl flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-green-600 uppercase tracking-wider mb-1">Estimated Quotation</p>
+              <h2 className="text-3xl font-bold text-slate-800">
+                Rp {totalPrice.toLocaleString("id-ID")}
+              </h2>
             </div>
-          )}
-
-          {/* BUTTON */}
-
-          <div className="flex gap-4 mt-6">
-
             {editingIndex !== null ? (
-
               <button
-                onClick={handleUpdateShipment}
-                className="bg-yellow-500 hover:bg-yellow-600 transition text-white px-6 py-3 rounded-xl shadow"
+                type="submit"
+                className="bg-yellow-500 hover:bg-yellow-600 hover:-translate-y-0.5 transition-all text-white px-8 py-3.5 rounded-xl shadow-lg font-bold"
               >
                 Update Shipment
               </button>
-
             ) : (
-
               <button
-                onClick={handleSubmit}
-                className="bg-blue-600 hover:bg-blue-700 transition text-white px-6 py-3 rounded-xl shadow"
+                type="submit"
+                className="bg-green-600 hover:bg-green-700 hover:-translate-y-0.5 transition-all text-white px-8 py-3.5 rounded-xl shadow-lg font-bold"
               >
-                Save Shipment
+                Publish Shipment
               </button>
-
             )}
+          </div>
 
+          {generalError && (
+            <div className="mt-6 bg-red-50 border border-red-200 p-5 rounded-xl flex items-center gap-3">
+              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <span className="text-red-700 font-bold">{generalError}</span>
+            </div>
+          )}
+
+          {/* BUTTONS */}
+          <div className="flex gap-4 mt-8">
             <button
+              type="button"
               onClick={() => {
                 setShowForm(false);
                 setEditingIndex(null);
                 setErrors({});
                 setGeneralError("");
               }}
-              className="bg-gray-300 hover:bg-gray-400 transition px-6 py-3 rounded-xl"
+              className="bg-slate-200 hover:bg-slate-300 hover:-translate-y-0.5 transition-all text-slate-700 font-bold px-6 py-3 rounded-xl"
             >
-              Cancel
+              Cancel & Close
             </button>
-
           </div>
 
-        </div>
+        </form>
 
       )}
 
       {/* TABLE */}
-
-      <div className="bg-white rounded-2xl shadow-lg border overflow-hidden mt-8">
-
-        <table className="w-full text-sm">
-
-          <thead className="bg-gray-100">
-
-            <tr className="text-gray-700">
-
-              <th className="px-4 py-4 text-left">
-                AWB
-              </th>
-
-              <th className="px-4 py-4 text-left">
-                Sender
-              </th>
-
-              <th className="px-4 py-4 text-left">
-                Receiver
-              </th>
-
-              <th className="px-4 py-4 text-left">
-                Route
-              </th>
-
-              <th className="px-4 py-4 text-left">
-                Vehicle
-              </th>
-
-              <th className="px-4 py-4 text-left">
-                Commodity
-              </th>
-
-              <th className="px-4 py-4 text-left">
-                Weight
-              </th>
-
-              <th className="px-4 py-4 text-left">
-                Price
-              </th>
-
-              <th className="px-4 py-4 text-left">
-                Created
-              </th>
-
-              <th className="px-4 py-4 text-left">
-                Status
-              </th>
-
-              <th className="px-4 py-4 text-left">
-                Action
-              </th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {filteredShipments.map(
-              (item, index) => (
-
-                <tr
-                  key={index}
-                  className="border-t hover:bg-gray-50 transition"
-                >
-
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-8">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-sm text-left table-auto">
+            <thead className="bg-slate-50/80 text-slate-500 font-semibold border-b border-slate-200 text-xs uppercase tracking-wider">
+              <tr>
+                <th className="px-5 py-5 whitespace-nowrap">AWB</th>
+                <th className="px-5 py-5 whitespace-nowrap">Sender</th>
+                <th className="px-5 py-5 whitespace-nowrap">Receiver</th>
+                <th className="px-5 py-5 whitespace-nowrap">Route</th>
+                <th className="px-5 py-5 whitespace-nowrap">Vehicle</th>
+                <th className="px-5 py-5 whitespace-nowrap">Commodity</th>
+                <th className="px-5 py-5 whitespace-nowrap">Weight</th>
+                <th className="px-5 py-5 whitespace-nowrap">Price</th>
+                <th className="px-5 py-5 whitespace-nowrap">Created</th>
+                <th className="px-5 py-5 text-center whitespace-nowrap">Status</th>
+                <th className="px-5 py-5 text-center whitespace-nowrap">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {paginatedShipments.map((item, localIndex) => {
+                const actualIndex = shipments.findIndex((s) => s.awb === item.awb);
+                return (
+                <tr key={item.awb || localIndex} className="hover:bg-slate-50/80 transition-colors bg-white group">
                   {/* AWB */}
-
-                  <td className="px-4 py-5 font-bold text-blue-700">
+                  <td className="px-5 py-4 font-bold text-slate-900 tracking-tight whitespace-nowrap">
                     {item.awb}
                   </td>
 
                   {/* SENDER */}
-
-                  <td className="px-4 py-5">
+                  <td className="px-5 py-4 text-slate-600 font-medium whitespace-nowrap">
                     {item.sender_name}
                   </td>
 
                   {/* RECEIVER */}
-
-                  <td className="px-4 py-5">
+                  <td className="px-5 py-4 text-slate-600 font-medium whitespace-nowrap">
                     {item.receiver_name}
                   </td>
 
                   {/* ROUTE */}
-
-                  <td className="px-4 py-5">
-
-                    <div className="leading-relaxed">
-
-                      <span>
-                        {item.origin}
-                      </span>
-
-                      <span className="mx-1 text-gray-400">
-                        →
-                      </span>
-
-                      <span>
-                        {item.destination}
-                      </span>
-
+                  <td className="px-5 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2 text-slate-600 font-medium">
+                      <span>{item.origin}</span>
+                      <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                      <span>{item.destination}</span>
                     </div>
-
                   </td>
 
                   {/* VEHICLE */}
-
-                  <td className="px-4 py-5">
-
-                    <div className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-xs font-medium inline-block">
-
+                  <td className="px-5 py-4 whitespace-nowrap">
+                    <div className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider inline-block">
                       {item.vehicle_name}
-
                     </div>
-
                   </td>
 
                   {/* COMMODITY */}
-
-                  <td className="px-4 py-5">
+                  <td className="px-5 py-4 text-slate-700 font-medium whitespace-nowrap">
                     {item.commodity}
                   </td>
 
                   {/* WEIGHT */}
-
-                  <td className="px-4 py-5">
-                    {item.weight} Kg
+                  <td className="px-5 py-4 font-semibold text-slate-700 whitespace-nowrap">
+                    {item.weight} kg
                   </td>
 
                   {/* PRICE */}
-
-                  <td className="px-4 py-5 font-bold text-green-600">
-
-                    Rp{" "}
-                    {Number(item.price).toLocaleString(
-                      "id-ID"
-                    )}
-
+                  <td className="px-5 py-4 font-bold text-slate-900 whitespace-nowrap">
+                    Rp {Number(item.price).toLocaleString("id-ID")}
                   </td>
 
                   {/* CREATED DATE */}
-
-                  <td className="px-4 py-5 whitespace-nowrap">
-
-                    {new Date(
-                      item.created_at
-                    ).toLocaleDateString("id-ID")}
-
+                  <td className="px-5 py-4 text-slate-500 whitespace-nowrap font-medium">
+                    {new Date(item.created_at).toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' })}
                   </td>
 
                   {/* STATUS */}
-
-                  <td className="px-4 py-5">
-
-                    <span
-                      className={`px-3 py-2 rounded-full text-xs font-semibold inline-block ${getStatusColor(
-                        item.status
-                      )}`}
+                  <td className="px-5 py-4 text-center">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide whitespace-nowrap
+                        ${item.status === "Received" ? "bg-blue-50 text-blue-700 ring-1 ring-blue-600/20" :
+                          item.status === "Loaded" ? "bg-green-50 text-green-700 ring-1 ring-green-600/20" :
+                          item.status === "Sortation" ? "bg-purple-50 text-purple-700 ring-1 ring-purple-600/20" :
+                          item.status === "Arrived" ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20" :
+                          item.status === "Delayed" ? "bg-red-50 text-red-700 ring-1 ring-red-600/20 animate-pulse" :
+                          "bg-slate-50 text-slate-700 ring-1 ring-slate-600/20"}`}
                     >
-
+                      <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                        item.status === "Arrived" ? "bg-emerald-500" :
+                        item.status === "Delayed" ? "bg-red-500" :
+                        "bg-current opacity-70"
+                      }`}></span>
                       {item.status}
-
                     </span>
-
                   </td>
 
                   {/* ACTION */}
-
-                  <td className="px-4 py-5">
-
-                    <div className="flex gap-2">
-
+                  <td className="px-5 py-4">
+                    <div className="flex justify-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() =>
-                          handleEdit(item, index)
-                        }
-                        className="bg-yellow-400 hover:bg-yellow-500 transition px-4 py-2 rounded-lg font-medium text-sm"
+                        onClick={() => handleEdit(item, actualIndex)}
+                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all flex-shrink-0 border border-transparent hover:border-blue-100"
+                        title="Edit Shipment"
                       >
-                        Update
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                       </button>
 
                       <button
-                        onClick={() =>
-                          handleDelete(index)
-                        }
-                        className="bg-red-500 hover:bg-red-600 transition text-white px-4 py-2 rounded-lg font-medium text-sm"
+                        onClick={() => handleDelete(actualIndex)}
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all flex-shrink-0 border border-transparent hover:border-red-100"
+                        title="Delete Shipment"
                       >
-                        Delete
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                       </button>
-
                     </div>
-
                   </td>
-
                 </tr>
-
-              )
-            )}
-
-          </tbody>
-
-        </table>
-
+              )})}
+            </tbody>
+          </table>
+        </div>
+        {/* PAGINATION UI */}
+        {totalPages > 1 && (
+          <div className="flex justify-between items-center px-6 py-4 bg-slate-50 border-t border-slate-200">
+            <span className="text-sm text-slate-500 font-medium">
+              Showing <span className="font-bold text-slate-700">{startIndex + 1}</span> to <span className="font-bold text-slate-700">{Math.min(startIndex + itemsPerPage, filteredShipments.length)}</span> of <span className="font-bold text-slate-700">{filteredShipments.length}</span> shipments
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 bg-white hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+              >
+                Previous
+              </button>
+              <div className="flex items-center justify-center px-4 font-bold text-slate-700 text-sm">
+                Page {currentPage} of {totalPages}
+              </div>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 bg-white hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
     </DashboardLayout>

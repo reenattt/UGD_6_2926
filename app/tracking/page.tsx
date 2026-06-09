@@ -9,15 +9,14 @@ const TrackingMap = dynamic(() => import("../ui/tracking-map"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-      <div className="text-slate-400 text-sm animate-pulse">Loading radar…</div>
+      <div className="text-slate-400 text-sm animate-pulse">Loading radar...</div>
     </div>
   ),
 });
 
 // =====================================================================
-// RADAR STATS — Static display numbers matching active flight data
+// RADAR STATS — Fetched dynamically
 // =====================================================================
-const TOTAL_FLIGHTS = 8;
 const TOTAL_AIRPORTS = 11;
 
 export default function Tracking() {
@@ -31,6 +30,9 @@ export default function Tracking() {
 
   const [clock, setClock] = useState("");
 
+  const [awbError, setAwbError] = useState("");
+  const [totalFlights, setTotalFlights] = useState(8);
+
   // Live clock for radar panel
   useEffect(() => {
     const tick = () => {
@@ -42,8 +44,25 @@ export default function Tracking() {
     return () => clearInterval(id);
   }, []);
 
+  // Fetch real total shipments to update radar
+  useEffect(() => {
+    fetch("/api/shipments")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          // Increase aircraft count based on real shipments
+          setTotalFlights(8 + data.length);
+        }
+      })
+      .catch(err => console.error(err));
+  }, []);
+
   const handleTrack = async () => {
-    if (!awb.trim()) return;
+    if (!awb.trim()) {
+      setAwbError("Please enter a tracking number.");
+      return;
+    }
+    setAwbError("");
 
     const response = await fetch(`/api/tracking?awb=${awb}`);
     const data = await response.json();
@@ -100,7 +119,7 @@ export default function Tracking() {
             <div className="flex items-center gap-1.5 text-slate-400">
               <span className="text-orange-400 font-bold text-sm">✈</span>
               <span>Active Flights:</span>
-              <span className="text-white font-bold">{TOTAL_FLIGHTS}</span>
+              <span className="text-white font-bold">{totalFlights}</span>
             </div>
             <div className="flex items-center gap-1.5 text-slate-400">
               <span className="text-blue-400 font-bold text-sm">🏢</span>
@@ -115,14 +134,14 @@ export default function Tracking() {
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-slate-400">
-              <span className="text-purple-400 font-bold text-sm">🕐</span>
+              <span className="text-purple-400 font-bold text-sm">🕒</span>
               <span className="text-white font-mono">{clock}</span>
             </div>
           </div>
         </div>
 
         {/* Map Canvas */}
-        <div className="h-[460px] w-full relative">
+        <div className="h-64 sm:h-80 md:h-[460px] w-full relative">
           <TrackingMap shipment={status === "found" ? shipment : null} />
 
           {/* Map Legend overlay */}
@@ -159,21 +178,39 @@ export default function Tracking() {
       {/* ============================================================ */}
       {/* AWB SEARCH                                                   */}
       {/* ============================================================ */}
-      <div className="bg-white p-6 rounded-xl shadow mb-6 flex gap-4">
+      <div className={`bg-white p-2 rounded-2xl shadow-md flex gap-2 border max-w-4xl mx-auto transition-all ${
+        awbError 
+          ? 'border-red-500 ring-4 ring-red-500/20 mb-2' 
+          : 'border-slate-200 focus-within:ring-4 focus-within:ring-blue-500/20 focus-within:border-blue-500 mb-8'
+      }`}>
+        <div className={`pl-6 pr-2 py-4 flex items-center ${awbError ? 'text-red-400' : 'text-slate-400'}`}>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
         <input
           value={awb}
-          onChange={(e) => setAwb(e.target.value)}
+          onChange={(e) => {
+            setAwb(e.target.value);
+            if (awbError) setAwbError("");
+          }}
           onKeyDown={(e) => e.key === "Enter" && handleTrack()}
-          placeholder="Enter AWB number to track shipment…"
-          className="flex-1 border p-4 rounded-lg outline-blue-500 font-medium text-slate-800"
+          placeholder="Enter AWB number to track your shipment..."
+          className={`flex-1 bg-transparent p-4 outline-none font-semibold text-lg placeholder:font-normal ${
+            awbError ? 'text-red-500 placeholder:text-red-300' : 'text-slate-800 placeholder:text-slate-400'
+          }`}
         />
         <button
           onClick={handleTrack}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 rounded-lg font-bold transition hover:scale-[1.02]"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-10 rounded-xl font-bold tracking-wide transition-all hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 m-1"
         >
-          Track
+          Track Shipment
         </button>
       </div>
+
+      {awbError && (
+        <div className="text-center text-red-500 font-medium mb-8 animate-fadeIn">
+          {awbError}
+        </div>
+      )}
 
       {/* ============================================================ */}
       {/* SHIPMENT INFO + TIMELINE                                     */}
@@ -182,69 +219,75 @@ export default function Tracking() {
         <div className="space-y-6 animate-fadeIn">
 
           {/* SHIPMENT INFO */}
-          <div className="bg-white p-6 rounded-xl shadow">
-            <h2 className="text-2xl font-bold mb-6 text-slate-800 border-b pb-4">
-              Shipment Information
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+            <h2 className="text-xl font-bold mb-6 text-slate-800 flex items-center gap-3 tracking-tight">
+              <span className="p-2 bg-blue-50 rounded-lg text-blue-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>
+              Shipment Details
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-              <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-sm">
+              <div className="space-y-6">
                 <div>
-                  <span className="text-slate-500 font-medium block">AWB Number</span>
-                  <span className="font-bold text-slate-800 text-base">{shipment.awb}</span>
+                  <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-1">AWB Number</span>
+                  <span className="font-bold text-slate-900 text-xl tracking-tight">{shipment.awb}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 font-medium block">Flight Number</span>
-                  <span className="font-bold text-orange-600 text-base">{flightId}</span>
+                  <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-1">Flight ID</span>
+                  <span className="font-extrabold text-orange-600 bg-orange-50 px-3 py-1 rounded-md inline-block">{flightId}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 font-medium block">Sender</span>
-                  <span className="font-semibold text-slate-800">{shipment.sender_name}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 font-medium block">Receiver</span>
-                  <span className="font-semibold text-slate-800">{shipment.receiver_name}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 font-medium block">Shipping Status</span>
-                  <span className={`inline-flex px-2 py-0.5 text-xs font-bold rounded-full uppercase ${
-                    shipment.shipping_status === "Arrived" || shipment.shipping_status === "Selesai"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : shipment.shipping_status === "Delayed" || shipment.shipping_status === "Pending"
-                      ? "bg-red-100 text-red-800 animate-pulse"
-                      : "bg-blue-100 text-blue-800"
-                  }`}>{shipment.shipping_status}</span>
+                  <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-1">Total Price</span>
+                  <span className="font-bold text-slate-900 text-lg">Rp {shipment.price.toLocaleString("id-ID")}</span>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-6">
+                <div className="relative pl-6 before:absolute before:left-2 before:top-3 before:bottom-0 before:w-px before:bg-slate-200">
+                  <span className="absolute left-[3px] top-1.5 w-3 h-3 rounded-full border-2 border-slate-300 bg-white"></span>
+                  <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-1">Origin / Sender</span>
+                  <span className="font-bold text-slate-800 text-base block">{shipment.origin_city}</span>
+                  {shipment.origin_lat && <span className="text-slate-500 font-mono text-xs block mb-1">{Number(shipment.origin_lat).toFixed(4)}°, {Number(shipment.origin_lng).toFixed(4)}°</span>}
+                  <span className="text-slate-500 font-medium">{shipment.sender_name}</span>
+                </div>
+                <div className="relative pl-6">
+                  <span className="absolute left-[3px] top-1.5 w-3 h-3 rounded-full border-2 border-blue-500 bg-white"></span>
+                  <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-1">Destination / Receiver</span>
+                  <span className="font-bold text-slate-800 text-base block">{shipment.destination_city}</span>
+                  {shipment.dest_lat && <span className="text-slate-500 font-mono text-xs block mb-1">{Number(shipment.dest_lat).toFixed(4)}°, {Number(shipment.dest_lng).toFixed(4)}°</span>}
+                  <span className="text-slate-500 font-medium">{shipment.receiver_name}</span>
+                </div>
+              </div>
+
+              <div className="space-y-6">
                 <div>
-                  <span className="text-slate-500 font-medium block">Origin</span>
-                  <span className="font-semibold text-slate-800">{shipment.origin_city}</span>
+                  <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-1">Item Details</span>
+                  <div className="flex items-center gap-3">
+                    <span className="p-2.5 bg-slate-50 rounded-lg text-slate-600 font-bold">{shipment.weight} kg</span>
+                    <span className="font-semibold text-slate-700">{shipment.item_type}</span>
+                  </div>
                 </div>
                 <div>
-                  <span className="text-slate-500 font-medium block">Destination</span>
-                  <span className="font-semibold text-slate-800">{shipment.destination_city}</span>
+                  <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-1">Service Type</span>
+                  <span className="font-bold text-slate-800 uppercase tracking-wide bg-slate-100 px-3 py-1 rounded-md inline-block">{shipment.shipping_type}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 font-medium block">Item Type</span>
-                  <span className="font-semibold text-slate-800">{shipment.item_type} ({shipment.weight} kg)</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 font-medium block">Shipping Type</span>
-                  <span className="font-semibold text-slate-800 uppercase">{shipment.shipping_type}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 font-medium block">Total Price</span>
-                  <span className="font-bold text-orange-600">Rp{shipment.price.toLocaleString("id-ID")}</span>
+                  <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-2">Current Status</span>
+                  <span className={`inline-flex px-3 py-1 text-xs font-bold rounded-full uppercase tracking-widest ${
+                    shipment.shipping_status === "Arrived" || shipment.shipping_status === "Selesai"
+                      ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20"
+                      : shipment.shipping_status === "Delayed" || shipment.shipping_status === "Pending"
+                      ? "bg-red-50 text-red-700 ring-1 ring-red-600/20 animate-pulse"
+                      : "bg-blue-50 text-blue-700 ring-1 ring-blue-600/20"
+                  }`}>{shipment.shipping_status}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* TRACKING TIMELINE */}
-          <div className="bg-white p-8 rounded-xl shadow">
-            <h2 className="text-2xl font-bold mb-8 text-slate-800 border-b pb-4">
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+            <h2 className="text-xl font-bold mb-8 text-slate-800 flex items-center gap-3 tracking-tight">
+              <span className="p-2 bg-purple-50 rounded-lg text-purple-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>
               Tracking Timeline
             </h2>
 

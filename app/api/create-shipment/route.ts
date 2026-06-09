@@ -1,7 +1,8 @@
 import postgres from "postgres";
 import { cookies } from "next/headers";
+import { resolveAirport } from "../../lib/airports";
 
-const sql = postgres(process.env.DATABASE_URL!, {
+const sql = postgres(process.env.DATABASE_URL || process.env.POSTGRES_URL!, {
   ssl: "require",
 });
 
@@ -30,7 +31,6 @@ export async function POST(request: Request) {
 
     // Server-side validation
     if (
-      !body.awb?.trim() ||
       !body.sender_name?.trim() ||
       !body.receiver_name?.trim() ||
       !body.phone?.trim() ||
@@ -40,6 +40,9 @@ export async function POST(request: Request) {
     ) {
       return Response.json({ error: "Missing required fields" }, { status: 400 });
     }
+
+    // Auto-generate AWB if not provided
+    const awb = body.awb?.trim() || `AWB-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
     const weight = Number(body.weight);
     if (isNaN(weight) || weight <= 0) {
@@ -51,7 +54,12 @@ export async function POST(request: Request) {
       return Response.json({ error: "Price must be a positive number" }, { status: 400 });
     }
 
-    await sql`
+    const shipmentStatus = body.shipping_status || "Received";
+
+    const originApt = resolveAirport(body.origin_city);
+    const destApt = resolveAirport(body.destination_city);
+
+    const result = await sql`
       INSERT INTO shipments (
         awb,
         shipping_date,
@@ -66,10 +74,15 @@ export async function POST(request: Request) {
         shipping_type,
         shipping_status,
         notes,
-        vehicle_id
+        vehicle_id,
+        customer_id,
+        origin_lat,
+        origin_lng,
+        dest_lat,
+        dest_lng
       )
       VALUES (
-        ${body.awb},
+        ${awb},
         CURRENT_DATE,
         ${body.sender_name},
         ${body.receiver_name},
@@ -80,10 +93,28 @@ export async function POST(request: Request) {
         ${weight},
         ${price},
         ${body.shipping_type || "Biasa"},
-        ${body.shipping_status || "Received"},
+        ${shipmentStatus},
         ${body.notes || ""},
-        ${body.vehicle_id ? Number(body.vehicle_id) : null}
+        ${body.vehicle_id ? Number(body.vehicle_id) : null},
+        ${body.customer_id ? Number(body.customer_id) : null},
+        ${originApt.lat},
+        ${originApt.lng},
+        ${destApt.lat},
+        ${destApt.lng}
       )
+      RETURNING id
+    `;
+
+    const shipmentId = result[0].id;
+
+    await sql`
+      INSERT INTO tracking_logs (shipment_id, status)
+      VALUES (${shipmentId}, ${shipmentStatus})
+    `;
+
+    await sql`
+      INSERT INTO shipment_details (shipment_id, insurance, note)
+      VALUES (${shipmentId}, ${body.insurance || 'No'}, ${body.notes || ''})
     `;
 
     return Response.json({
@@ -102,4 +133,4 @@ export async function POST(request: Request) {
       }
     );
   }
-}
+}
