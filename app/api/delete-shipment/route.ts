@@ -52,8 +52,8 @@ export async function DELETE(request: Request) {
 
     // ================= DELETE MAIN SHIPMENT =================
     await sql`
-      DELETE FROM shipments
-      WHERE id = ${body.id}
+      -- cache bypass
+      DELETE FROM shipments WHERE id = ${body.id}
     `;
 
     return Response.json({

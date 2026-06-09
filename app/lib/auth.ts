@@ -107,8 +107,13 @@ export function hasRoleAccess(role: UserRole, pathname: string): boolean {
   if (pathname.startsWith("/dashboard/manage-admins")) {
     return role === "Owner";
   }
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/manifest")) {
+  if (
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/manifest") ||
+    pathname.startsWith("/reports")
+  ) {
     return role === "Admin" || role === "Owner";
   }
   return true;
 }
+

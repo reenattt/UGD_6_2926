@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { getClientSession } from "../../lib/auth";
-import { ITEM_CATEGORIES } from "@/app/lib/definitions";
-import { AIRPORT_MASTER_DATA } from "@/app/lib/airports";
+import { ITEM_CATEGORIES, SHIPMENT_STATUSES } from "@/app/lib/definitions";
+import { AIRPORT_MASTER_DATA, resolveAirport } from "@/app/lib/airports";
 import { SearchableSelect } from "@/app/ui/searchable-select";
 import DashboardLayout from "../../ui/layout-dashboard";
 
@@ -64,14 +64,17 @@ export default function EditShipment() {
         return res.json();
       })
       .then((data) => {
+        const originApt = resolveAirport(data.origin_city);
+        const destApt = resolveAirport(data.destination_city);
+
         setFormData({
           id: data.id,
           awb: data.awb || "",
           sender_name: data.sender_name || "",
           receiver_name: data.receiver_name || "",
           phone: data.phone || "",
-          origin_city: data.origin_city || "",
-          destination_city: data.destination_city || "",
+          origin_city: data.origin_city ? `${originApt.code} - ${originApt.city}` : "",
+          destination_city: data.destination_city ? `${destApt.code} - ${destApt.city}` : "",
           item_type: data.item_type || "",
           weight: data.weight?.toString() || "",
           price: data.price?.toString() || "",
@@ -211,7 +214,7 @@ export default function EditShipment() {
           <div className="flex flex-col">
             <label className="text-sm font-semibold text-gray-700 mb-1">Origin City</label>
             <SearchableSelect
-              options={Object.values(AIRPORT_MASTER_DATA).map(apt => ({ label: `${apt.code} - ${apt.city}`, value: apt.code }))}
+              options={Object.values(AIRPORT_MASTER_DATA).map(apt => ({ label: `${apt.code} - ${apt.city}`, value: `${apt.code} - ${apt.city}` }))}
               value={formData.origin_city}
               onChange={(val) => handleInputChange("origin_city", val)}
               placeholder="Select Origin Airport..."
@@ -261,7 +264,7 @@ export default function EditShipment() {
           <div className="flex flex-col">
             <label className="text-sm font-semibold text-gray-700 mb-1">Destination City</label>
             <SearchableSelect
-              options={Object.values(AIRPORT_MASTER_DATA).map(apt => ({ label: `${apt.code} - ${apt.city}`, value: apt.code }))}
+              options={Object.values(AIRPORT_MASTER_DATA).map(apt => ({ label: `${apt.code} - ${apt.city}`, value: `${apt.code} - ${apt.city}` }))}
               value={formData.destination_city}
               onChange={(val) => handleInputChange("destination_city", val)}
               placeholder="Select Destination Airport..."
@@ -327,14 +330,7 @@ export default function EditShipment() {
           <div className="flex flex-col">
             <label className="text-sm font-semibold text-gray-700 mb-1">Status</label>
             <SearchableSelect
-              options={[
-                { label: "Received", value: "Received" },
-                { label: "Sortation", value: "Sortation" },
-                { label: "Loaded", value: "Loaded" },
-                { label: "On Board", value: "On Board" },
-                { label: "Arrived", value: "Arrived" },
-                { label: "Delayed", value: "Delayed" }
-              ]}
+              options={SHIPMENT_STATUSES.map((status) => ({ label: status, value: status }))}
               value={formData.shipping_status}
               onChange={(val) => handleInputChange("shipping_status", val)}
               placeholder="Select Status"

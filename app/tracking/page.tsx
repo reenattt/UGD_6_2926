@@ -3,6 +3,7 @@
 import DashboardLayout from "../ui/layout-dashboard";
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 
 // Load Leaflet map client-side only (Leaflet requires window)
 const TrackingMap = dynamic(() => import("../ui/tracking-map"), {
@@ -19,19 +20,25 @@ const TrackingMap = dynamic(() => import("../ui/tracking-map"), {
 // =====================================================================
 const TOTAL_AIRPORTS = 11;
 
+// Helper: format a timestamp as "DD MMM YYYY\nHH:MM WIB"
+function formatTimestamp(ts: string | null | undefined) {
+  if (!ts) return null;
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return null;
+  const date = d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+  const time = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }).replace(".", ":") + " WIB";
+  return { date, time };
+}
+
 export default function Tracking() {
-
+  const router = useRouter();
   const [awb, setAwb] = useState("");
-
-  const [status, setStatus] =
-    useState<"idle" | "found" | "notfound">("idle");
-
+  const [status, setStatus] = useState<"idle" | "found" | "notfound">("idle");
   const [shipment, setShipment] = useState<any>(null);
-
   const [clock, setClock] = useState("");
-
   const [awbError, setAwbError] = useState("");
   const [totalFlights, setTotalFlights] = useState(8);
+  const [loading, setLoading] = useState(false);
 
   // Live clock for radar panel
   useEffect(() => {
@@ -50,7 +57,6 @@ export default function Tracking() {
       .then(res => res.json())
       .then(data => {
         if (data && data.length > 0) {
-          // Increase aircraft count based on real shipments
           setTotalFlights(8 + data.length);
         }
       })
@@ -58,14 +64,17 @@ export default function Tracking() {
   }, []);
 
   const handleTrack = async () => {
+    if (loading) return;
     if (!awb.trim()) {
       setAwbError("Please enter a tracking number.");
       return;
     }
     setAwbError("");
+    setLoading(true);
 
     const response = await fetch(`/api/tracking?awb=${awb}`);
     const data = await response.json();
+    setLoading(false);
 
     if (data.found) {
       setShipment(data.shipment);
@@ -73,6 +82,8 @@ export default function Tracking() {
     } else {
       setStatus("notfound");
       setShipment(null);
+      // Redirect to the dedicated not-found page
+      router.push(`/tracking/not-found`);
     }
   };
 
@@ -91,16 +102,72 @@ export default function Tracking() {
 
   const currentStep = getNormalizedStepIndex(shipment?.shipping_status);
 
-  // Derive a flight number from shipment if available
   const flightId = shipment
     ? `SL-${String(shipment.id || "001").padStart(3, "0")}`
     : null;
+
+  const createdTs = formatTimestamp(shipment?.created_at);
+  const updatedTs = formatTimestamp(shipment?.updated_at);
 
   return (
     <DashboardLayout>
 
       {/* ============================================================ */}
-      {/* LIVE FLIGHT RADAR MAP                                        */}
+      {/* AWB SEARCH — appears FIRST                                   */}
+      {/* ============================================================ */}
+      <div className="mb-6">
+        <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+          <span className="p-1.5 bg-blue-50 rounded-lg text-blue-600">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </span>
+          Track Your Shipment
+        </h2>
+
+        <div className={`bg-white p-3 rounded-2xl shadow-lg flex gap-2 border transition-all duration-300 hover:shadow-xl ${
+          awbError
+            ? 'border-red-500 ring-4 ring-red-500/20'
+            : 'border-slate-200 focus-within:ring-4 focus-within:ring-blue-500/20 focus-within:border-blue-500 hover:border-slate-300'
+        }`}>
+          <div className={`pl-6 pr-2 py-4 flex items-center ${awbError ? 'text-red-400' : 'text-slate-400'}`}>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            value={awb}
+            onChange={(e) => {
+              setAwb(e.target.value);
+              if (awbError) setAwbError("");
+            }}
+            onKeyDown={(e) => e.key === "Enter" && handleTrack()}
+            placeholder="Enter AWB number to track your shipment..."
+            className={`flex-1 bg-transparent p-4 outline-none font-semibold text-lg placeholder:font-normal ${
+              awbError ? 'text-red-500 placeholder:text-red-300' : 'text-slate-800 placeholder:text-slate-400'
+            }`}
+          />
+          <button
+            onClick={handleTrack}
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-10 rounded-xl font-bold tracking-wide transition-all hover:shadow-lg hover:shadow-blue-600/30 hover:-translate-y-0.5 active:translate-y-0 m-1"
+          >
+            {loading ? "Tracking..." : "Track Shipment"}
+          </button>
+        </div>
+
+        {awbError && (
+          <div className="text-red-500 font-medium mt-2 flex items-center gap-2 text-sm">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {awbError}
+          </div>
+        )}
+      </div>
+
+      {/* ============================================================ */}
+      {/* LIVE FLIGHT RADAR MAP — appears BELOW search                 */}
       {/* ============================================================ */}
       <div className="bg-slate-950 rounded-2xl shadow-2xl overflow-hidden mb-6 border border-slate-800">
 
@@ -141,7 +208,7 @@ export default function Tracking() {
         </div>
 
         {/* Map Canvas */}
-        <div className="h-64 sm:h-80 md:h-[460px] w-full relative">
+        <div className="h-64 sm:h-80 md:h-[400px] w-full relative">
           <TrackingMap shipment={status === "found" ? shipment : null} />
 
           {/* Map Legend overlay */}
@@ -161,56 +228,8 @@ export default function Tracking() {
               </div>
             </div>
           </div>
-
-          {/* Status overlays */}
-          {status === "notfound" && (
-            <div className="absolute inset-0 z-[1001] flex items-center justify-center pointer-events-none">
-              <div className="bg-slate-900/95 border border-red-500/40 rounded-2xl px-8 py-5 text-center shadow-2xl">
-                <div className="text-3xl mb-2">❌</div>
-                <div className="text-red-400 font-bold text-base">AWB Not Found</div>
-                <div className="text-slate-500 text-xs mt-1">Enter a valid AWB to highlight the route</div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
-
-      {/* ============================================================ */}
-      {/* AWB SEARCH                                                   */}
-      {/* ============================================================ */}
-      <div className={`bg-white p-2 rounded-2xl shadow-md flex gap-2 border max-w-4xl mx-auto transition-all ${
-        awbError 
-          ? 'border-red-500 ring-4 ring-red-500/20 mb-2' 
-          : 'border-slate-200 focus-within:ring-4 focus-within:ring-blue-500/20 focus-within:border-blue-500 mb-8'
-      }`}>
-        <div className={`pl-6 pr-2 py-4 flex items-center ${awbError ? 'text-red-400' : 'text-slate-400'}`}>
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-        </div>
-        <input
-          value={awb}
-          onChange={(e) => {
-            setAwb(e.target.value);
-            if (awbError) setAwbError("");
-          }}
-          onKeyDown={(e) => e.key === "Enter" && handleTrack()}
-          placeholder="Enter AWB number to track your shipment..."
-          className={`flex-1 bg-transparent p-4 outline-none font-semibold text-lg placeholder:font-normal ${
-            awbError ? 'text-red-500 placeholder:text-red-300' : 'text-slate-800 placeholder:text-slate-400'
-          }`}
-        />
-        <button
-          onClick={handleTrack}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-10 rounded-xl font-bold tracking-wide transition-all hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 m-1"
-        >
-          Track Shipment
-        </button>
-      </div>
-
-      {awbError && (
-        <div className="text-center text-red-500 font-medium mb-8 animate-fadeIn">
-          {awbError}
-        </div>
-      )}
 
       {/* ============================================================ */}
       {/* SHIPMENT INFO + TIMELINE                                     */}
@@ -219,9 +238,13 @@ export default function Tracking() {
         <div className="space-y-6 animate-fadeIn">
 
           {/* SHIPMENT INFO */}
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+          <div className="bg-white p-8 rounded-2xl shadow-md shadow-slate-200/40 border border-slate-100 transition-all hover:shadow-lg">
             <h2 className="text-xl font-bold mb-6 text-slate-800 flex items-center gap-3 tracking-tight">
-              <span className="p-2 bg-blue-50 rounded-lg text-blue-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>
+              <span className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </span>
               Shipment Details
             </h2>
 
@@ -237,7 +260,7 @@ export default function Tracking() {
                 </div>
                 <div>
                   <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-1">Total Price</span>
-                  <span className="font-bold text-slate-900 text-lg">Rp {shipment.price.toLocaleString("id-ID")}</span>
+                  <span className="font-bold text-slate-900 text-lg">Rp {Number(shipment.price).toLocaleString("id-ID")}</span>
                 </div>
               </div>
 
@@ -282,12 +305,50 @@ export default function Tracking() {
                 </div>
               </div>
             </div>
+
+            {/* TIMESTAMP SECTION */}
+            {(createdTs || updatedTs) && (
+              <div className="mt-8 pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {createdTs && (
+                  <div className="flex items-start gap-3 bg-slate-50 rounded-xl p-4">
+                    <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 flex-shrink-0">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5">Created At</p>
+                      <p className="font-bold text-slate-800">{createdTs.date}</p>
+                      <p className="text-sm text-slate-500 font-semibold font-mono">{createdTs.time}</p>
+                    </div>
+                  </div>
+                )}
+                {updatedTs && (
+                  <div className="flex items-start gap-3 bg-orange-50 rounded-xl p-4">
+                    <div className="p-2 bg-white rounded-lg shadow-sm border border-orange-200 text-orange-500 flex-shrink-0">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-0.5">Last Updated</p>
+                      <p className="font-bold text-slate-800">{updatedTs.date}</p>
+                      <p className="text-sm text-orange-600 font-semibold font-mono">{updatedTs.time}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* TRACKING TIMELINE */}
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+          <div className="bg-white p-8 rounded-2xl shadow-md shadow-slate-200/40 border border-slate-100 transition-all hover:shadow-lg">
             <h2 className="text-xl font-bold mb-8 text-slate-800 flex items-center gap-3 tracking-tight">
-              <span className="p-2 bg-purple-50 rounded-lg text-purple-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></span>
+              <span className="p-2 bg-purple-50 rounded-lg text-purple-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </span>
               Tracking Timeline
             </h2>
 
@@ -319,8 +380,11 @@ export default function Tracking() {
                     textClass = "text-red-600 font-extrabold";
                   } else {
                     iconHtml = (
-                      <div className="w-8 h-8 rounded-full bg-blue-600 border-2 border-blue-100 flex items-center justify-center text-white text-xs z-10 shadow font-bold">
-                        ➜
+                      <div className="relative">
+                        <div className="w-8 h-8 rounded-full bg-blue-600 border-2 border-blue-100 flex items-center justify-center text-white text-xs z-10 shadow-lg shadow-blue-500/40 font-bold relative">
+                          ➜
+                        </div>
+                        <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-20"></div>
                       </div>
                     );
                     textClass = "text-blue-700 font-extrabold";

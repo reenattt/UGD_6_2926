@@ -458,6 +458,43 @@ export default function Page() {
 
                 </div>
 
+                <div className="md:col-span-2 grid grid-cols-2 gap-4 mt-2">
+                  <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                    <p className="text-gray-400 mb-1 text-sm uppercase tracking-wider font-bold">
+                      Created At
+                    </p>
+                    {result.created_at ? (
+                      <>
+                        <p className="font-semibold text-lg text-white">
+                          {new Date(result.created_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
+                        </p>
+                        <p className="text-gray-400 text-sm font-mono mt-0.5">
+                          {new Date(result.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(/\./g, ":")} WIB
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-gray-500">—</p>
+                    )}
+                  </div>
+                  <div className="bg-orange-500/10 p-4 rounded-xl border border-orange-500/20">
+                    <p className="text-orange-400 mb-1 text-sm uppercase tracking-wider font-bold">
+                      Last Updated
+                    </p>
+                    {result.updated_at ? (
+                      <>
+                        <p className="font-semibold text-lg text-white">
+                          {new Date(result.updated_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
+                        </p>
+                        <p className="text-orange-400/80 text-sm font-mono mt-0.5">
+                          {new Date(result.updated_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(/\./g, ":")} WIB
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-gray-500">—</p>
+                    )}
+                  </div>
+                </div>
+
               </div>
 
               {/* FOOTER */}

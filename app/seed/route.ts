@@ -185,7 +185,11 @@ async function seedShipments() {
 
       vehicle_id INT REFERENCES vehicles(id),
 
-      customer_id INT REFERENCES customers(id)
+      customer_id INT REFERENCES customers(id),
+
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
   `;
 

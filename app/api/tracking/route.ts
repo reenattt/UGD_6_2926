@@ -15,9 +15,8 @@ export async function GET(request: Request) {
       searchParams.get("awb");
 
     const shipment = await sql`
-
+      -- cache bypass
       SELECT *
-
       FROM shipments
 
       WHERE awb = ${awb}

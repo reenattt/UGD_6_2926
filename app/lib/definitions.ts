@@ -96,3 +96,15 @@ export const ITEM_CATEGORIES: Record<string, string[]> = {
   Other: ["General Cargo"]
 };
 
+// Single source of truth for shipment statuses.
+// Used by Manifest form, Edit form, and Reports filter — never duplicate this list.
+export const SHIPMENT_STATUSES = [
+  "Received",
+  "Sortation",
+  "Loaded",
+  "Departed",
+  "Arrived",
+  "Delayed",
+] as const;
+
+export type ShipmentStatus = (typeof SHIPMENT_STATUSES)[number];

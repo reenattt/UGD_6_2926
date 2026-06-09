@@ -55,7 +55,8 @@ export async function PUT(request: Request) {
     const originApt = resolveAirport(body.origin_city);
     const destApt = resolveAirport(body.destination_city);
 
-    await sql`
+    const result = await sql`
+      -- cache bypass
       UPDATE shipments
       SET
         sender_name = ${body.sender_name},
@@ -74,9 +75,13 @@ export async function PUT(request: Request) {
         origin_lat = ${originApt.lat},
         origin_lng = ${originApt.lng},
         dest_lat = ${destApt.lat},
-        dest_lng = ${destApt.lng}
+        dest_lng = ${destApt.lng},
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ${body.id}
+      RETURNING *
     `;
+
+    const updatedShipment = result[0];
 
     // Only insert a new tracking log if the status changed.
     // For simplicity, we just insert the new status log for the audit.
@@ -88,6 +93,7 @@ export async function PUT(request: Request) {
     return Response.json({
       success: true,
       message: "Shipment updated successfully",
+      data: updatedShipment
     });
 
   } catch (error: any) {

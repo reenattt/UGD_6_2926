@@ -60,6 +60,7 @@ export async function POST(request: Request) {
     const destApt = resolveAirport(body.destination_city);
 
     const result = await sql`
+      -- cache bypass
       INSERT INTO shipments (
         awb,
         shipping_date,
@@ -102,10 +103,11 @@ export async function POST(request: Request) {
         ${destApt.lat},
         ${destApt.lng}
       )
-      RETURNING id
+      RETURNING *
     `;
 
-    const shipmentId = result[0].id;
+    const newShipment = result[0];
+    const shipmentId = newShipment.id;
 
     await sql`
       INSERT INTO tracking_logs (shipment_id, status)
@@ -120,6 +122,7 @@ export async function POST(request: Request) {
     return Response.json({
       success: true,
       message: "Shipment created successfully",
+      data: newShipment
     });
 
   } catch (error: any) {

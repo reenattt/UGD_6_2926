@@ -4,6 +4,7 @@ const sql = postgres(process.env.DATABASE_URL!, { ssl: "require" });
 
 async function listTracking() {
   const data = await sql`
+    -- cache bypass
     SELECT 
       shipments.awb,
       tracking_logs.status,

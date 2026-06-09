@@ -17,6 +17,13 @@ function RealTimeClock() {
   return <span className="text-xs text-slate-500 font-mono mt-0.5">{time}</span>;
 }
 
+const navItems = [
+  { label: "Dashboard", path: "/dashboard", icon: "🏠" },
+  { label: "Shipments", path: "/manifest", icon: "📄" },
+  { label: "Reports", path: "/reports", icon: "📊" },
+  { label: "Tracking", path: "/tracking", icon: "📦" },
+];
+
 export default function DashboardLayout({
   children,
 }: {
@@ -46,6 +53,7 @@ export default function DashboardLayout({
     "/dashboard": "Dashboard",
     "/tracking": "Tracking AWB",
     "/manifest": "Shipments",
+    "/reports": "Reports",
     "/dashboard/manage-admins": "Manage Admin Accounts",
   };
 
@@ -56,71 +64,83 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
 
-      <div className={`${open ? "w-64" : "w-16"} bg-blue-800 text-white flex flex-col transition-all duration-300`}>
+      {/* SIDEBAR */}
+      <div className={`${open ? "w-64" : "w-16"} bg-slate-900 text-white flex flex-col transition-all duration-300 shadow-xl`}>
 
-        <div className="flex items-center justify-between p-4">
+        <div className="flex items-center justify-between p-4 border-b border-slate-700">
           {open && (
             <div className="flex items-center gap-2">
-              <img src="/bg_profil.png" className="w-10 h-10 rounded-full object-cover" />
-              <span className="font-bold">Sky Link</span>
+              <img src="/bg_profil.png" className="w-10 h-10 rounded-full object-cover border-2 border-blue-400" />
+              <span className="font-bold text-white">Sky Link</span>
             </div>
           )}
 
-          <button onClick={() => setOpen(!open)} className="text-xl mx-auto">
+          <button onClick={() => setOpen(!open)} className="text-xl mx-auto text-slate-400 hover:text-white transition-colors">
             ☰
           </button>
         </div>
 
-        {open && (
-          <div className="px-4 mt-4 space-y-2">
-            <div onClick={() => router.push("/dashboard")} className={`p-3 rounded cursor-pointer ${pathname === "/dashboard" ? "bg-blue-900" : "hover:bg-blue-700"}`}>
-              Dashboard
-            </div>
+        <nav className="flex flex-col mt-4 px-2 gap-1 flex-1">
+          {navItems.map((item) => {
+            const isActive = pathname === item.path;
+            return (
+              <button
+                key={item.path}
+                onClick={() => router.push(item.path)}
+                title={!open ? item.label : undefined}
+                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-all duration-200 ${
+                  isActive
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                } ${!open ? "justify-center" : ""}`}
+              >
+                <span className="text-lg flex-shrink-0">{item.icon}</span>
+                {open && <span>{item.label}</span>}
+                {open && isActive && (
+                  <span className="ml-auto w-1.5 h-5 bg-white/30 rounded-full" />
+                )}
+              </button>
+            );
+          })}
 
-            <div onClick={() => router.push("/tracking")} className={`p-3 rounded cursor-pointer ${pathname === "/tracking" ? "bg-blue-900" : "hover:bg-blue-700"}`}>
-              Tracking
-            </div>
+          {session?.role === "Owner" && (
+            <button
+              onClick={() => router.push("/dashboard/manage-admins")}
+              title={!open ? "Manage Admins" : undefined}
+              className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-all duration-200 ${
+                pathname === "/dashboard/manage-admins"
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
+              } ${!open ? "justify-center" : ""}`}
+            >
+              <span className="text-lg flex-shrink-0">👥</span>
+              {open && <span>Manage Admins</span>}
+            </button>
+          )}
+        </nav>
 
-            <div onClick={() => router.push("/manifest")} className={`p-3 rounded cursor-pointer ${pathname === "/manifest" ? "bg-blue-900" : "hover:bg-blue-700"}`}>
-              Shipments
-            </div>
-
-            {session?.role === "Owner" && (
-              <div onClick={() => router.push("/dashboard/manage-admins")} className={`p-3 rounded cursor-pointer ${pathname === "/dashboard/manage-admins" ? "bg-blue-900" : "hover:bg-blue-700"}`}>
-                Manage Admins
-              </div>
-            )}
-          </div>
-        )}
-
-        {!open && (
-          <div className="flex flex-col items-center mt-4 gap-4">
-            <div onClick={() => router.push("/dashboard")} className="cursor-pointer" title="Dashboard">🏠</div>
-            <div onClick={() => router.push("/tracking")} className="cursor-pointer" title="Tracking">📦</div>
-            <div onClick={() => router.push("/manifest")} className="cursor-pointer" title="Shipments">📄</div>
-            {session?.role === "Owner" && (
-              <div onClick={() => router.push("/dashboard/manage-admins")} className="cursor-pointer" title="Manage Admins">👥</div>
-            )}
-          </div>
-        )}
-
-        {open && (
+        <div className="p-3 border-t border-slate-700">
           <button
             onClick={() => {
               clearClientSession();
               router.push("/home");
             }}
-            className="mt-auto m-4 bg-red-500 p-3 rounded"
+            className={`w-full flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all ${
+              !open ? "justify-center" : ""
+            }`}
+            title={!open ? "Logout" : undefined}
           >
-            Logout
+            <span className="text-lg">🚪</span>
+            {open && <span>Logout</span>}
           </button>
-        )}
+        </div>
       </div>
 
+      {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col min-w-0">
 
         <div className="flex justify-between items-center bg-white px-8 py-4 shadow-sm border-b border-slate-200">
-          <h1 className="font-bold text-xl text-slate-800 tracking-tight">{titles[pathname]}</h1>
+          <h1 className="font-bold text-xl text-slate-800 tracking-tight">{titles[pathname] || "Sky Link"}</h1>
 
           <div className="flex items-center gap-6">
             {/* Real-time Clock */}
