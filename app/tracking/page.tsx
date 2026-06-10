@@ -35,6 +35,7 @@ export default function Tracking() {
   const [awb, setAwb] = useState("");
   const [status, setStatus] = useState<"idle" | "found" | "notfound">("idle");
   const [shipment, setShipment] = useState<any>(null);
+  const [logs, setLogs] = useState<any[]>([]);
   const [clock, setClock] = useState("");
   const [awbError, setAwbError] = useState("");
   const [totalFlights, setTotalFlights] = useState(8);
@@ -75,35 +76,27 @@ export default function Tracking() {
     setAwbError("");
     setLoading(true);
 
-    const response = await fetch(`/api/tracking?awb=${awb}`);
-    const data = await response.json();
-    setLoading(false);
+    try {
+      const response = await fetch(`/api/tracking?awb=${awb}`);
+      const data = await response.json();
+      setLoading(false);
 
-    if (data.found) {
-      setShipment(data.shipment);
-      setStatus("found");
-    } else {
-      setStatus("notfound");
-      setShipment(null);
-      // Redirect to the dedicated not-found page
-      router.push(`/tracking/not-found?awb=${encodeURIComponent(awb)}`);
+      if (data.found) {
+        setShipment(data.shipment);
+        setLogs(data.logs || []);
+        setStatus("found");
+      } else {
+        setStatus("notfound");
+        setShipment(null);
+        setLogs([]);
+        // Redirect to the dedicated not-found page
+        router.push(`/tracking/not-found?awb=${encodeURIComponent(awb)}`);
+      }
+    } catch (err) {
+      setLoading(false);
+      setAwbError("Failed to fetch tracking data. Please try again later.");
     }
   };
-
-  const trackingSteps = ["Received", "Sortation", "Loaded", "Departed", "Arrived"];
-
-  const getNormalizedStepIndex = (statusStr: string) => {
-    const norm = (statusStr || "").trim().toUpperCase();
-    if (norm === "RECEIVED" || norm === "DIPROSES") return 0;
-    if (norm === "SORTATION") return 1;
-    if (norm === "LOADED") return 2;
-    if (norm === "DEPARTED" || norm === "DALAM PENGIRIMAN" || norm === "ON BOARD") return 3;
-    if (norm === "ARRIVED" || norm === "SELESAI" || norm === "SAMPAI TUJUAN") return 4;
-    if (norm === "DELAYED" || norm === "PENDING") return 3;
-    return 0;
-  };
-
-  const currentStep = getNormalizedStepIndex(shipment?.shipping_status);
 
   const flightId = shipment
     ? `SL-${String(shipment.id || "001").padStart(3, "0")}`
@@ -356,24 +349,23 @@ export default function Tracking() {
             </h2>
 
             <div className="relative ml-4">
-              {trackingSteps.map((step, index) => {
-                const isCompleted = index < currentStep;
-                const isActive = index === currentStep;
-                const isFuture = index > currentStep;
+              {logs.map((log, index) => {
+                const isLast = index === logs.length - 1;
                 const isDelayed =
-                  (shipment.shipping_status === "Delayed" || shipment.shipping_status === "Pending") && isActive;
+                  (log.status === "Delayed" || log.status === "Pending") && isLast;
+                const ts = formatTimestamp(log.created_at);
 
                 let iconHtml;
                 let textClass;
 
-                if (isCompleted) {
+                if (!isLast) {
                   iconHtml = (
                     <div className="w-8 h-8 rounded-full bg-emerald-500 border-2 border-emerald-100 flex items-center justify-center text-white text-xs z-10 shadow font-bold">
                       ✓
                     </div>
                   );
                   textClass = "text-emerald-700 font-bold";
-                } else if (isActive) {
+                } else if (isLast) {
                   if (isDelayed) {
                     iconHtml = (
                       <div className="w-8 h-8 rounded-full bg-red-500 border-2 border-red-100 flex items-center justify-center text-white text-xs z-10 shadow font-extrabold animate-pulse">
@@ -392,22 +384,13 @@ export default function Tracking() {
                     );
                     textClass = "text-blue-700 font-extrabold";
                   }
-                } else {
-                  iconHtml = (
-                    <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-slate-100 flex items-center justify-center text-slate-400 text-xs z-10 shadow-inner">
-                      ○
-                    </div>
-                  );
-                  textClass = "text-slate-400 font-medium";
                 }
 
                 return (
                   <div key={index} className="flex items-start gap-6 relative mb-10 last:mb-0">
-                    {index < trackingSteps.length - 1 && (
+                    {index < logs.length - 1 && (
                       <div
-                        className={`absolute left-4 top-8 w-0.5 h-[calc(100%+8px)] -translate-x-1/2 z-0 ${
-                          index < currentStep ? "bg-emerald-500" : "bg-slate-200"
-                        }`}
+                        className="absolute left-4 top-8 w-0.5 h-[calc(100%+8px)] -translate-x-1/2 z-0 bg-emerald-500"
                       />
                     )}
 
@@ -415,14 +398,13 @@ export default function Tracking() {
 
                     <div className="pt-0.5">
                       <p className={`text-base ${textClass}`}>
-                        {isActive && isDelayed ? "Delayed (In Transit)" : step}
+                        {isLast && isDelayed ? "Delayed (In Transit)" : log.status}
                       </p>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {isCompleted && "Step completed"}
-                        {isActive && !isDelayed && "Current shipment status"}
-                        {isActive && isDelayed && "Cargo transit temporarily delayed"}
-                        {isFuture && "Awaiting flight progression"}
-                      </p>
+                      {ts && (
+                        <p className="text-xs text-slate-500 mt-1 font-medium">
+                          {ts.date} - {ts.time}
+                        </p>
+                      )}
                     </div>
                   </div>
                 );

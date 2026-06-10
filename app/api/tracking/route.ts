@@ -18,25 +18,26 @@ export async function GET(request: Request) {
       -- cache bypass
       SELECT *
       FROM shipments
-
       WHERE awb = ${awb}
-
     `;
 
     if (shipment.length === 0) {
-
       return Response.json({
         found: false,
       });
-
     }
 
+    const trackingLogs = await sql`
+      SELECT *
+      FROM tracking_logs
+      WHERE shipment_id = ${shipment[0].id}
+      ORDER BY created_at ASC
+    `;
+
     return Response.json({
-
       found: true,
-
       shipment: shipment[0],
-
+      logs: trackingLogs,
     });
 
   } catch (error) {

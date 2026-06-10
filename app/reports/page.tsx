@@ -33,8 +33,7 @@ export default function ReportsPage() {
     fetch("/api/shipments")
       .then((res) => res.json())
       .then((data) => {
-        // Fetch all shipments, no longer filtering by completed only
-        setAllShipments(data);
+        setAllShipments(Array.isArray(data) ? data : []);
       });
   }, []);
 

@@ -179,7 +179,7 @@ export default function DashboardPage() {
     fetch("/api/shipments")
       .then((res) => res.json())
       .then((data) => {
-        setShipments(data);
+        setShipments(Array.isArray(data) ? data : []);
       });
   };
 
@@ -240,10 +240,11 @@ export default function DashboardPage() {
   const handleExportCSV = () => {
     if (shipments.length === 0) return;
     const headers = ["AWB,Sender,Receiver,Origin,Destination,Item,Weight,Price,Type,Status,Created,Updated"];
+    const escapeCSV = (val: any) => `"${String(val || "").replace(/"/g, '""')}"`;
     const csvRows = shipments.map((item) => {
       const c = formatTs(item.created_at);
       const u = formatTs(item.updated_at);
-      return `${item.awb},${item.sender_name},${item.receiver_name},${item.origin_city},${item.destination_city},${item.item_type},${item.weight},${item.price},${item.shipping_type},${item.shipping_status},${c ? c.date + " " + c.time : "—"},${u ? u.date + " " + u.time : "—"}`;
+      return `${escapeCSV(item.awb)},${escapeCSV(item.sender_name)},${escapeCSV(item.receiver_name)},${escapeCSV(item.origin_city)},${escapeCSV(item.destination_city)},${escapeCSV(item.item_type)},${escapeCSV(item.weight)},${escapeCSV(item.price)},${escapeCSV(item.shipping_type)},${escapeCSV(item.shipping_status)},${escapeCSV(c ? c.date + " " + c.time : "—")},${escapeCSV(u ? u.date + " " + u.time : "—")}`;
     });
     const csvContent = headers.concat(csvRows).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
