@@ -9,8 +9,8 @@ import { useRouter } from "next/navigation";
 const TrackingMap = dynamic(() => import("../ui/tracking-map"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-      <div className="text-slate-400 text-sm animate-pulse">Loading radar...</div>
+    <div className="w-full h-full bg-slate-50 flex items-center justify-center">
+      <div className="text-slate-500 text-sm animate-pulse">Loading radar...</div>
     </div>
   ),
 });
@@ -65,10 +65,13 @@ export default function Tracking() {
 
   const handleTrack = async () => {
     if (loading) return;
-    if (!awb.trim()) {
-      setAwbError("Please enter a tracking number.");
+    
+    const isValidFormat = /^AWB\d{3,}$/i.test(awb.trim());
+    if (!awb.trim() || !isValidFormat) {
+      setAwbError("Please enter a valid AWB number.\nExample: AWB001");
       return;
     }
+    
     setAwbError("");
     setLoading(true);
 
@@ -83,7 +86,7 @@ export default function Tracking() {
       setStatus("notfound");
       setShipment(null);
       // Redirect to the dedicated not-found page
-      router.push(`/tracking/not-found`);
+      router.push(`/tracking/not-found?awb=${encodeURIComponent(awb)}`);
     }
   };
 
@@ -125,43 +128,43 @@ export default function Tracking() {
           Track Your Shipment
         </h2>
 
-        <div className={`bg-white p-3 rounded-2xl shadow-lg flex gap-2 border transition-all duration-300 hover:shadow-xl ${
-          awbError
-            ? 'border-red-500 ring-4 ring-red-500/20'
-            : 'border-slate-200 focus-within:ring-4 focus-within:ring-blue-500/20 focus-within:border-blue-500 hover:border-slate-300'
-        }`}>
-          <div className={`pl-6 pr-2 py-4 flex items-center ${awbError ? 'text-red-400' : 'text-slate-400'}`}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1 group">
+            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${awbError ? 'text-red-400' : 'text-slate-400 group-focus-within:text-blue-500'} transition-colors`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              value={awb}
+              onChange={(e) => {
+                setAwb(e.target.value);
+                if (awbError) setAwbError("");
+              }}
+              onKeyDown={(e) => e.key === "Enter" && handleTrack()}
+              placeholder="Search tracking number..."
+              className={`w-full h-14 pl-12 pr-4 bg-white border rounded-2xl shadow-sm font-medium transition-all duration-200 hover:shadow-md hover:border-slate-300 focus:outline-none focus:ring-2 ${
+                awbError 
+                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500 text-red-900 placeholder-red-300' 
+                  : 'border-slate-200 focus:ring-blue-500 focus:border-blue-500 text-slate-800 placeholder-slate-400'
+              }`}
+            />
           </div>
-          <input
-            value={awb}
-            onChange={(e) => {
-              setAwb(e.target.value);
-              if (awbError) setAwbError("");
-            }}
-            onKeyDown={(e) => e.key === "Enter" && handleTrack()}
-            placeholder="Enter AWB number to track your shipment..."
-            className={`flex-1 bg-transparent p-4 outline-none font-semibold text-lg placeholder:font-normal ${
-              awbError ? 'text-red-500 placeholder:text-red-300' : 'text-slate-800 placeholder:text-slate-400'
-            }`}
-          />
           <button
             onClick={handleTrack}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-10 rounded-xl font-bold tracking-wide transition-all hover:shadow-lg hover:shadow-blue-600/30 hover:-translate-y-0.5 active:translate-y-0 m-1"
+            className="h-14 sm:w-auto w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-8 rounded-2xl font-bold tracking-wide transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
           >
             {loading ? "Tracking..." : "Track Shipment"}
           </button>
         </div>
 
         {awbError && (
-          <div className="text-red-500 font-medium mt-2 flex items-center gap-2 text-sm">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-red-500 font-medium mt-2 flex items-start gap-2 text-sm whitespace-pre-line">
+            <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            {awbError}
+            <span>{awbError}</span>
           </div>
         )}
       </div>
@@ -169,40 +172,40 @@ export default function Tracking() {
       {/* ============================================================ */}
       {/* LIVE FLIGHT RADAR MAP — appears BELOW search                 */}
       {/* ============================================================ */}
-      <div className="bg-slate-950 rounded-2xl shadow-2xl overflow-hidden mb-6 border border-slate-800">
+      <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-6 border border-slate-200">
 
         {/* Radar Header Bar */}
-        <div className="bg-slate-900 px-5 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-slate-800">
+        <div className="bg-slate-50 px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-slate-200">
           {/* Title */}
           <div className="flex items-center gap-2 mr-auto">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-white font-bold text-sm tracking-widest uppercase">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-slate-800 font-bold text-sm tracking-widest uppercase">
               Sky Link Live Radar
             </span>
           </div>
 
           {/* Stats */}
           <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <span className="text-orange-400 font-bold text-sm">✈</span>
+            <div className="flex items-center gap-1.5 text-slate-500">
+              <span className="text-orange-500 font-bold text-sm">✈</span>
               <span>Active Flights:</span>
-              <span className="text-white font-bold">{totalFlights}</span>
+              <span className="text-slate-800 font-bold">{totalFlights}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <span className="text-blue-400 font-bold text-sm">🏢</span>
+            <div className="flex items-center gap-1.5 text-slate-500">
+              <span className="text-blue-500 font-bold text-sm">🏢</span>
               <span>Airports:</span>
-              <span className="text-white font-bold">{TOTAL_AIRPORTS}</span>
+              <span className="text-slate-800 font-bold">{TOTAL_AIRPORTS}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <span className="text-emerald-400 font-bold text-sm">📦</span>
+            <div className="flex items-center gap-1.5 text-slate-500">
+              <span className="text-emerald-500 font-bold text-sm">📦</span>
               <span>Tracking:</span>
-              <span className={`font-bold ${flightId ? "text-orange-400" : "text-slate-500"}`}>
+              <span className={`font-bold ${flightId ? "text-orange-500" : "text-slate-400"}`}>
                 {flightId || "—"}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <span className="text-purple-400 font-bold text-sm">🕒</span>
-              <span className="text-white font-mono">{clock}</span>
+            <div className="flex items-center gap-1.5 text-slate-500">
+              <span className="text-purple-500 font-bold text-sm">🕒</span>
+              <span className="text-slate-800 font-mono">{clock}</span>
             </div>
           </div>
         </div>
@@ -212,10 +215,10 @@ export default function Tracking() {
           <TrackingMap shipment={status === "found" ? shipment : null} />
 
           {/* Map Legend overlay */}
-          <div className="absolute bottom-3 left-3 z-[1000] bg-slate-900/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-slate-700 pointer-events-none">
-            <div className="text-[10px] text-slate-400 font-mono space-y-1">
+          <div className="absolute bottom-4 left-4 z-[1000] bg-white/90 backdrop-blur-sm rounded-xl px-4 py-3 border border-slate-200 shadow-sm pointer-events-none">
+            <div className="text-[10px] text-slate-600 font-mono space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-orange-400 text-sm">✈</span>
+                <span className="text-orange-500 text-sm">✈</span>
                 <span>Active cargo aircraft</span>
               </div>
               <div className="flex items-center gap-2">
@@ -223,7 +226,7 @@ export default function Tracking() {
                 <span>Flown distance</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="inline-block w-3 h-0.5 border-t-2 border-dashed border-slate-500" />
+                <span className="inline-block w-3 h-0.5 border-t-2 border-dashed border-slate-400" />
                 <span>Remaining route</span>
               </div>
             </div>

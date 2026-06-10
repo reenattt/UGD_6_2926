@@ -27,7 +27,7 @@ function lerp(a: number, b: number, t: number) {
 // AIRCRAFT DIV ICON
 // =====================================================================
 function makeAircraftIcon(L: any, bearing: number, color: string, highlighted = false, dimmed = false) {
-  const size = highlighted ? 28 : 20;
+  const size = highlighted ? 28 : 22;
   const opacity = dimmed ? 0.3 : 1;
   return L.divIcon({
     html: `<div style="
@@ -35,7 +35,8 @@ function makeAircraftIcon(L: any, bearing: number, color: string, highlighted = 
       font-size: ${size}px;
       color: ${color};
       opacity: ${opacity};
-      filter: ${highlighted ? "drop-shadow(0 0 6px " + color + ")" : "none"};
+      filter: ${highlighted ? "drop-shadow(0 0 6px " + color + ")" : "drop-shadow(0 2px 4px rgba(0,0,0,0.4))"};
+      text-shadow: 0px 0px 3px rgba(255,255,255,0.9), 0px 0px 3px rgba(255,255,255,0.9);
       line-height: 1;
       user-select: none;
     ">✈</div>`,
@@ -49,30 +50,31 @@ function makeAircraftIcon(L: any, bearing: number, color: string, highlighted = 
 // AIRPORT MARKER ICON
 // =====================================================================
 function makeAirportIcon(L: any, code: string, highlighted = false, dimmed = false) {
-  const bg = highlighted ? "#f97316" : "#1e293b";
-  const border = highlighted ? "#fff" : "#475569";
-  const opacity = dimmed ? 0.3 : 1;
+  const bg = highlighted ? "#ea580c" : "#ffffff";
+  const border = highlighted ? "#fff" : "#cbd5e1";
+  const opacity = dimmed ? 0.4 : 1;
+  const textColor = highlighted ? "#ffffff" : "#475569";
   return L.divIcon({
     html: `<div style="
       background: ${bg};
       border: 2px solid ${border};
       border-radius: 50%;
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 9px;
-      font-weight: 800;
-      color: ${highlighted ? "#1e293b" : "#e2e8f0"};
+      font-size: 10px;
+      font-weight: 700;
+      color: ${textColor};
       opacity: ${opacity};
       letter-spacing: -0.5px;
-      font-family: monospace;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      font-family: 'Inter', sans-serif;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
     ">${code}</div>`,
     className: "",
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
   });
 }
 
@@ -123,12 +125,13 @@ export default function TrackingMap({ shipment, compact = false, globalShipments
     
     // Build synthetic live flight logic from real database rows
     const liveFlights = validShipments.map((s, idx) => {
-      const colors = ["#f97316", "#3b82f6", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#14b8a6"];
+      const colors = ["#2563eb", "#ea580c", "#9333ea", "#059669"];
       const idNum = parseInt(s.awb.replace(/\D/g, '')) || idx;
       return {
         id: s.awb,
         origin: s.origin_city,
         dest: s.destination_city,
+        status: s.shipping_status,
         progress: (idNum % 100) / 100, // pseudo-random deterministic start
         speed: 0.00015 + ((idNum % 10) * 0.000015), // deterministic speed variation
         color: colors[idNum % colors.length],
@@ -161,12 +164,11 @@ export default function TrackingMap({ shipment, compact = false, globalShipments
 
       mapRef.current = map;
 
-      // Dark tile layer
+      // Colored map tile layer (Standard OSM style)
       L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
-          attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-          subdomains: "abcd",
+          attribution: '&copy; OpenStreetMap contributors',
           maxZoom: 19,
         }
       ).addTo(map);
@@ -189,7 +191,7 @@ export default function TrackingMap({ shipment, compact = false, globalShipments
           .bindTooltip(`${code} — ${airport.city}`, {
             permanent: false,
             direction: "top",
-            className: "leaflet-tooltip-dark",
+            className: "",
           });
         airportMarkersRef.current[code] = marker;
       });
@@ -198,16 +200,16 @@ export default function TrackingMap({ shipment, compact = false, globalShipments
       liveFlights.forEach((flight, i) => {
         const routeLine = L.polyline([[flight.origLat, flight.origLng], [flight.destLat, flight.destLng]], {
           color: flight.color,
-          weight: 1.5,
-          opacity: 0.35,
+          weight: 3,
+          opacity: 0.7,
           dashArray: "6 6",
         }).addTo(map);
         routeLinesRef.current[i] = routeLine;
 
         const progressLine = L.polyline([], {
           color: flight.color,
-          weight: 2.5,
-          opacity: 0.85,
+          weight: 4,
+          opacity: 1,
         }).addTo(map);
         progressLinesRef.current[i] = progressLine;
 
@@ -221,12 +223,28 @@ export default function TrackingMap({ shipment, compact = false, globalShipments
         })
           .addTo(map)
           .bindPopup(
-            `<div style="font-family:monospace;font-size:12px;line-height:1.6">
-              <strong style="color:${flight.color}">${flight.id}</strong><br/>
-              <span style="color:#94a3b8">Route:</span> ${flight.origin} ✈ ${flight.dest}<br/>
-              <span style="color:#94a3b8">Status:</span> Live DB Tracking
+            `<div style="font-family:'Inter', sans-serif;font-size:11px;line-height:1.6;color:#334155;min-width:160px;padding:2px;">
+              <div style="font-weight:800;font-size:13px;margin-bottom:6px;color:#0f172a;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">
+                ✈ Flight Details
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+                <span style="color:#64748b;font-weight:600;">Aircraft:</span>
+                <span style="font-weight:700;">Boeing 737 Cargo</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+                <span style="color:#64748b;font-weight:600;">AWB:</span>
+                <span style="font-weight:800;color:${flight.color}">${flight.id}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+                <span style="color:#64748b;font-weight:600;">Route:</span>
+                <span style="font-weight:700;">${flight.origin} ➔ ${flight.dest}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="color:#64748b;font-weight:600;">Status:</span>
+                <span style="font-weight:700;color:#059669;">${flight.status || 'In Transit'}</span>
+              </div>
             </div>`,
-            { className: "leaflet-popup-dark" }
+            { className: "", closeButton: false }
           );
         aircraftMarkersRef.current[i] = marker;
       });
@@ -283,20 +301,21 @@ export default function TrackingMap({ shipment, compact = false, globalShipments
     if (!shipment) {
       // Reset Highlight
       highlightedFlightRef.current = null;
+      mapRef.current?.closePopup();
       Object.entries(airportMarkersRef.current).forEach(([, marker]) => {
         const el = marker.getElement();
         if (el) {
           const div = el.querySelector("div");
           if (div) {
             div.style.opacity = "1";
-            div.style.background = "#1e293b";
-            div.style.borderColor = "#475569";
-            div.style.color = "#e2e8f0";
+            div.style.background = "#ffffff";
+            div.style.borderColor = "#cbd5e1";
+            div.style.color = "#475569";
           }
         }
       });
       routeLinesRef.current.forEach((line) => {
-        if (line) line.setStyle({ opacity: 0.35, weight: 1.5 });
+        if (line) line.setStyle({ opacity: 0.7, weight: 3 });
       });
       return;
     }
@@ -315,6 +334,11 @@ export default function TrackingMap({ shipment, compact = false, globalShipments
     if (matchedFlightIndex !== -1) {
       const matchedFlight = flightStateRef.current[matchedFlightIndex];
       highlightedFlightRef.current = matchedFlight.id;
+      
+      const marker = aircraftMarkersRef.current[matchedFlightIndex];
+      if (marker) {
+        marker.openPopup();
+      }
     }
 
     // Highlight airport markers via DOM
@@ -328,15 +352,15 @@ export default function TrackingMap({ shipment, compact = false, globalShipments
           if (isOrigin) {
             div.style.opacity = "1";
             div.style.background = "#22c55e";
-            div.style.borderColor = "#fff";
-            div.style.color = "#0f172a";
+            div.style.borderColor = "#ffffff";
+            div.style.color = "#ffffff";
           } else if (isDest) {
             div.style.opacity = "1";
-            div.style.background = "#f97316";
-            div.style.borderColor = "#fff";
-            div.style.color = "#0f172a";
+            div.style.background = "#ea580c";
+            div.style.borderColor = "#ffffff";
+            div.style.color = "#ffffff";
           } else {
-            div.style.opacity = "0.25";
+            div.style.opacity = "0.4";
           }
         }
       }
@@ -374,7 +398,7 @@ export default function TrackingMap({ shipment, compact = false, globalShipments
   return (
     <div
       ref={mapDivRef}
-      className={`w-full h-full bg-slate-900 ${
+      className={`w-full h-full bg-slate-50 ${
         !compact ? "rounded-b-2xl" : ""
       }`}
     />

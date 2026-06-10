@@ -10,7 +10,8 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/manifest") ||
     pathname.startsWith("/create-shipment") ||
-    pathname.startsWith("/edit-shipment")
+    pathname.startsWith("/edit-shipment") ||
+    pathname.startsWith("/profile")
   ) {
     if (!sessionCookie) {
       return NextResponse.redirect(new URL("/home?login=true", request.url));
@@ -41,6 +42,7 @@ export const config = {
     '/dashboard/:path*',
     '/manifest/:path*',
     '/create-shipment/:path*',
-    '/edit-shipment/:path*'
+    '/edit-shipment/:path*',
+    '/profile/:path*'
   ],
 };

@@ -110,7 +110,8 @@ export function hasRoleAccess(role: UserRole, pathname: string): boolean {
   if (
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/manifest") ||
-    pathname.startsWith("/reports")
+    pathname.startsWith("/reports") ||
+    pathname.startsWith("/profile")
   ) {
     return role === "Admin" || role === "Owner";
   }

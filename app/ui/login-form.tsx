@@ -13,12 +13,18 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutTimer, setLockoutTimer] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const savedUsername = localStorage.getItem("skylink_remember_username");
+    if (savedUsername) {
+      setUsername(savedUsername);
+      setRememberMe(true);
+    }
   }, []);
 
   // Handle Lockout countdown
@@ -52,6 +58,11 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
     const sessionUser = verifyUser(username, password);
 
     if (sessionUser) {
+      if (rememberMe) {
+        localStorage.setItem("skylink_remember_username", username);
+      } else {
+        localStorage.removeItem("skylink_remember_username");
+      }
       setClientSession(sessionUser);
       setErrors({});
       setFailedAttempts(0);
@@ -124,7 +135,7 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
         </div>
 
         {/* PASSWORD */}
-        <div className="mb-6 relative">
+        <div className="mb-4 relative">
           <div className="relative flex items-center">
             <input
               type={showPassword ? "text" : "password"}
@@ -158,6 +169,20 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
               {errors.password}
             </p>
           )}
+        </div>
+
+        {/* REMEMBER ME */}
+        <div className="mb-6 flex items-center">
+          <input
+            type="checkbox"
+            id="rememberMe"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-500 bg-gray-800 text-orange-500 focus:ring-orange-500 focus:ring-offset-gray-900 cursor-pointer transition-all"
+          />
+          <label htmlFor="rememberMe" className="ml-2 text-sm font-medium text-white cursor-pointer select-none">
+            Remember Me
+          </label>
         </div>
 
         {/* BUTTON */}

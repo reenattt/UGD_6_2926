@@ -1,13 +1,15 @@
 "use client";
 
 import DashboardLayout from "../../ui/layout-dashboard";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function TrackingNotFound() {
+function NotFoundContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const awb = searchParams.get("awb");
 
   return (
-    <DashboardLayout>
       <div className="min-h-[70vh] flex flex-col items-center justify-center px-4">
         {/* Card */}
         <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-12 max-w-lg w-full text-center">
@@ -35,9 +37,17 @@ export default function TrackingNotFound() {
           <h1 className="text-2xl font-extrabold text-slate-900 mb-3 tracking-tight">
             Shipment Not Found
           </h1>
-          <p className="text-slate-500 text-base leading-relaxed mb-2">
+          <p className="text-slate-500 text-base leading-relaxed mb-4">
             The tracking number you entered does not exist in our system.
           </p>
+          
+          {awb && (
+            <div className="bg-slate-100 rounded-xl py-3 px-6 inline-block mb-6 border border-slate-200">
+              <span className="text-slate-500 text-sm font-medium mr-2">Searched AWB:</span>
+              <span className="text-slate-800 font-mono font-bold text-lg">{awb}</span>
+            </div>
+          )}
+
           <p className="text-slate-400 text-sm mb-8">
             Please check that your AWB number is correct and try again.
           </p>
@@ -53,18 +63,12 @@ export default function TrackingNotFound() {
           </div>
 
           {/* Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              onClick={() => router.back()}
-              className="flex-1 sm:flex-none px-8 py-3 rounded-xl border-2 border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all"
-            >
-              ← Go Back
-            </button>
+          <div className="flex justify-center mt-2">
             <button
               onClick={() => router.push("/tracking")}
-              className="flex-1 sm:flex-none px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all shadow-md shadow-blue-500/30 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+              className="w-full sm:w-64 px-8 py-4 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/30 hover:-translate-y-0.5 active:translate-y-0 text-lg tracking-wide"
             >
-              Return to Tracking
+              Back to Tracking
             </button>
           </div>
         </div>
@@ -78,6 +82,15 @@ export default function TrackingNotFound() {
           .
         </p>
       </div>
+  );
+}
+
+export default function TrackingNotFound() {
+  return (
+    <DashboardLayout>
+      <Suspense fallback={<div className="min-h-[70vh] flex items-center justify-center"><div className="text-slate-500 animate-pulse">Loading...</div></div>}>
+        <NotFoundContent />
+      </Suspense>
     </DashboardLayout>
   );
 }

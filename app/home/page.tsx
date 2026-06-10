@@ -9,8 +9,8 @@ import dynamic from "next/dynamic";
 const TrackingMap = dynamic(() => import("../ui/tracking-map"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-      <span className="text-slate-500 text-xs animate-pulse">Loading map…</span>
+    <div className="w-full h-full bg-slate-50 flex items-center justify-center">
+      <span className="text-slate-400 text-xs animate-pulse">Loading map…</span>
     </div>
   ),
 });
@@ -33,14 +33,8 @@ export default function Page() {
 
     if (loading) return;
 
-    if (!awb.trim()) {
-      setAwbError("Please enter an AWB tracking number.");
-      setResult(null);
-      return;
-    }
-
-    if (!/^AWB\d{3,}$/.test(awb.trim())) {
-      setAwbError("Invalid AWB format. Example: AWB001");
+    if (!awb.trim() || !/^AWB\d{3,}$/i.test(awb.trim())) {
+      setAwbError("Please enter a valid AWB number. Example: AWB001");
       setResult(null);
       return;
     }
@@ -73,13 +67,13 @@ export default function Page() {
 
       } else {
         setResult(null);
-        setAwbError("Shipment not found. Please check your AWB number.");
+        router.push(`/tracking-not-found?awb=${encodeURIComponent(awb)}`);
       }
 
     } catch (error) {
       console.log(error);
       setResult(null);
-      setAwbError("Shipment not found. Please check your AWB number.");
+      router.push(`/tracking-not-found?awb=${encodeURIComponent(awb)}`);
     }
 
     setLoading(false);
@@ -227,9 +221,9 @@ export default function Page() {
 
           <div className="h-56 w-full overflow-hidden relative border-b border-white/10">
             <TrackingMap compact shipment={result && typeof result === "object" ? result : null} />
-            <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
+            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-slate-200 shadow-sm flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-[10px] font-bold text-gray-200 uppercase tracking-widest">Global Radar</span>
+              <span className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">Global Radar</span>
             </div>
           </div>
 

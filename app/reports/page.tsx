@@ -144,25 +144,25 @@ export default function ReportsPage() {
 
         {/* FILTERS */}
         <div id="no-print" className="bg-white rounded-2xl shadow-md shadow-slate-200/50 border border-slate-100 p-5 mb-6 transition-all hover:shadow-lg">
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-4">
             {/* Search */}
-            <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-slate-400" />
+            <div className="relative flex-1 group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
               </div>
               <input
                 type="text"
-                placeholder="Search AWB, sender, receiver, destination..."
+                placeholder="Search AWB, route, status..."
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm w-full outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all bg-slate-50 hover:bg-white focus:bg-white text-slate-900 placeholder:text-slate-400 shadow-sm hover:border-slate-300"
+                className="w-full h-14 pl-12 pr-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-800 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:shadow-md hover:border-slate-300"
               />
             </div>
             {/* Status Filter */}
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500 bg-white text-slate-900 font-medium min-w-[180px] cursor-pointer"
+              className="h-14 bg-white border border-slate-200 rounded-2xl px-4 text-slate-800 font-medium shadow-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:shadow-md hover:border-slate-300 min-w-[180px] cursor-pointer"
             >
               <option value="all">All Statuses</option>
               {SHIPMENT_STATUSES.map((s) => (

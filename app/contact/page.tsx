@@ -1,6 +1,7 @@
 "use client";
 
 import Navbar from "../ui/navbar";
+import { Headset, MessageCircle, Mail } from "lucide-react";
 
 export default function Contact() {
   return (
@@ -36,16 +37,16 @@ export default function Contact() {
           {/* CARD 1 */}
           <div className="bg-[#2b3c73] p-6 rounded-xl text-center 
             animate-fadeInUp delay-1
-            transition duration-300 
-            hover:scale-105 hover:bg-[#324a8a] group cursor-pointer">
+            transition-all duration-200 
+            hover:-translate-y-2 hover:shadow-xl hover:shadow-black/20 hover:bg-[#324a8a] group cursor-pointer">
 
             <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center 
-              rounded-full bg-white/20 text-xl
-              transition duration-300 group-hover:bg-orange-500 group-hover:shadow-lg group-hover:shadow-orange-500/30">
-              📞
+              rounded-full shadow-sm backdrop-blur-sm transition-all duration-200 group-hover:scale-110"
+              style={{ background: 'rgba(255,255,255,0.12)' }}>
+              <Headset className="text-[#FF8C32]" size={28} strokeWidth={2} />
             </div>
 
-            <h2 className="mb-1 font-semibold text-lg group-hover:text-orange-400 transition">
+            <h2 className="mb-1 font-semibold text-lg group-hover:text-orange-400 transition-colors duration-200">
               Contact
             </h2>
             <p className="text-sm text-gray-300">Hotline 24/7</p>
@@ -55,16 +56,16 @@ export default function Contact() {
           {/* CARD 2 */}
           <div className="bg-[#2b3c73] p-6 rounded-xl text-center 
             animate-fadeInUp delay-2
-            transition duration-300 
-            hover:scale-105 hover:bg-[#324a8a] group cursor-pointer">
+            transition-all duration-200 
+            hover:-translate-y-2 hover:shadow-xl hover:shadow-black/20 hover:bg-[#324a8a] group cursor-pointer">
 
             <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center 
-              rounded-full bg-white/20 text-xl
-              transition duration-300 group-hover:bg-orange-500 group-hover:shadow-lg group-hover:shadow-orange-500/30">
-              💬
+              rounded-full shadow-sm backdrop-blur-sm transition-all duration-200 group-hover:scale-110"
+              style={{ background: 'rgba(255,255,255,0.12)' }}>
+              <MessageCircle className="text-[#FF8C32]" size={28} strokeWidth={2} />
             </div>
 
-            <h2 className="mb-1 font-semibold text-lg group-hover:text-orange-400 transition">
+            <h2 className="mb-1 font-semibold text-lg group-hover:text-orange-400 transition-colors duration-200">
               WhatsApp
             </h2>
             <p className="text-sm text-gray-300">Chat langsung</p>
@@ -74,16 +75,16 @@ export default function Contact() {
           {/* CARD 3 */}
           <div className="bg-[#2b3c73] p-6 rounded-xl text-center 
             animate-fadeInUp delay-3
-            transition duration-300 
-            hover:scale-105 hover:bg-[#324a8a] group cursor-pointer">
+            transition-all duration-200 
+            hover:-translate-y-2 hover:shadow-xl hover:shadow-black/20 hover:bg-[#324a8a] group cursor-pointer">
 
             <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center 
-              rounded-full bg-white/20 text-xl
-              transition duration-300 group-hover:bg-orange-500 group-hover:shadow-lg group-hover:shadow-orange-500/30">
-              ✉️
+              rounded-full shadow-sm backdrop-blur-sm transition-all duration-200 group-hover:scale-110"
+              style={{ background: 'rgba(255,255,255,0.12)' }}>
+              <Mail className="text-[#FF8C32]" size={28} strokeWidth={2} />
             </div>
 
-            <h2 className="mb-1 font-semibold text-lg group-hover:text-orange-400 transition">
+            <h2 className="mb-1 font-semibold text-lg group-hover:text-orange-400 transition-colors duration-200">
               Email
             </h2>
             <p className="text-sm text-gray-300">Kerja sama langsung</p>

@@ -256,9 +256,9 @@ export default function Manifest() {
 
   const extraPrice =
     form.shipping_type === "Express"
-      ? 20000
+      ? 250000
       : form.shipping_type === "VVIP"
-        ? 50000
+        ? 500000
         : 0;
 
   const totalPrice =
@@ -688,14 +688,14 @@ export default function Manifest() {
       </div>
 
       {/* SEARCH */}
-      <div className="bg-white p-2 rounded-2xl shadow-md shadow-slate-200/50 mb-8 flex gap-2 border border-slate-200 focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-500 transition-all hover:shadow-lg hover:border-slate-300">
-        <div className="pl-6 pr-2 py-4 flex items-center text-slate-400">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      <div className="relative mb-8 group">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <svg className="w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         </div>
         <input
           type="text"
-          placeholder="Search AWBs, Senders, Destinations..."
-          className="flex-1 bg-transparent py-4 pr-4 outline-none font-medium text-slate-800 text-base placeholder:text-slate-400"
+          placeholder="Search shipment..."
+          className="w-full h-14 pl-12 pr-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-800 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:shadow-md hover:border-slate-300"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -928,50 +928,66 @@ export default function Manifest() {
           </div>
 
           {/* PRICE CARD */}
-          <div className="mt-8 bg-green-50/50 border border-green-200 p-6 rounded-2xl flex items-center justify-between">
-            <div>
-              <p className="text-sm font-bold text-green-600 uppercase tracking-wider mb-1">Estimated Quotation</p>
-              <h2 className="text-3xl font-bold text-slate-800">
-                Rp {totalPrice.toLocaleString("id-ID")}
-              </h2>
+          <div className="mt-8 bg-green-50/50 border border-green-200 p-6 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex-1 w-full max-w-md">
+              <p className="text-sm font-bold text-green-600 uppercase tracking-wider mb-4 border-b border-green-200/50 pb-2">Estimated Quotation</p>
+              
+              <div className="space-y-3 mb-4">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-600 font-medium">Base Price</span>
+                  <span className="font-semibold text-slate-800">Rp {basePrice.toLocaleString("id-ID")}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-600 font-medium">Shipment Type: <span className="font-bold">{form.shipping_type}</span></span>
+                  <span className="font-semibold text-slate-800">Rp {extraPrice.toLocaleString("id-ID")}</span>
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center border-t border-green-200/50 pt-4">
+                <span className="text-slate-800 font-bold text-lg">Total Price</span>
+                <span className="text-3xl font-extrabold text-green-700 tracking-tight">Rp {totalPrice.toLocaleString("id-ID")}</span>
+              </div>
             </div>
-            {editingIndex !== null ? (
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-green-600 hover:bg-green-700 disabled:opacity-70 disabled:cursor-not-allowed hover:-translate-y-0.5 transition-all text-white px-8 py-3.5 rounded-xl shadow-lg font-bold flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Updating...
-                  </>
-                ) : (
-                  "Update Shipment"
-                )}
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-green-600 hover:bg-green-700 disabled:opacity-70 disabled:cursor-not-allowed hover:-translate-y-0.5 transition-all text-white px-8 py-3.5 rounded-xl shadow-lg font-bold flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Publishing...
-                  </>
-                ) : (
-                  "Publish Shipment"
-                )}
-              </button>
-            )}
+
+            <div className="w-full md:w-auto flex flex-col gap-3">
+              {editingIndex !== null ? (
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-green-600 hover:bg-green-700 disabled:opacity-70 disabled:cursor-not-allowed hover:-translate-y-0.5 transition-all text-white px-8 py-4 rounded-xl shadow-lg font-bold flex items-center justify-center gap-2 w-full md:w-auto"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Updating...
+                    </>
+                  ) : (
+                    "Update Shipment"
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-green-600 hover:bg-green-700 disabled:opacity-70 disabled:cursor-not-allowed hover:-translate-y-0.5 transition-all text-white px-8 py-4 rounded-xl shadow-lg font-bold flex items-center justify-center gap-2 w-full md:w-auto"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Publishing...
+                    </>
+                  ) : (
+                    "Publish Shipment"
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
           {generalError && (
