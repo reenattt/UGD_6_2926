@@ -4,6 +4,7 @@ import DashboardLayout from "../ui/layout-dashboard";
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Search, AlertCircle, Download, X } from "lucide-react";
+import { Pagination } from "../ui/pagination";
 
 function formatTs(ts: string | null | undefined) {
   if (!ts) return null;
@@ -495,25 +496,20 @@ export default function DashboardPage() {
         </div>
 
         {/* PAGINATION */}
-        <div className="flex justify-between items-center mt-6 pt-4 border-t border-slate-200">
-          <p className="text-sm text-slate-500 font-medium">Page {currentPage} of {totalPages}</p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 transition shadow-sm font-medium"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-4 py-2 rounded-lg bg-blue-600 border border-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition shadow-sm font-medium"
-            >
-              Next
-            </button>
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-4 border-t border-slate-200 gap-4">
+            <span className="text-sm text-slate-500 font-medium whitespace-nowrap">
+              Total Shipments: <span className="font-bold text-slate-700">{filteredShipments.length}</span>
+            </span>
+            <div className="flex justify-end w-full sm:w-auto">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* AWB DETAIL POPUP */}

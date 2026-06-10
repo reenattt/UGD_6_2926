@@ -7,6 +7,7 @@ import { AIRPORT_MASTER_DATA, resolveAirport } from "../lib/airports";
 import { SearchableSelect } from "../ui/searchable-select";
 import { StatusBadge } from "../ui/status-badge";
 import { X } from "lucide-react";
+import { Pagination } from "../ui/pagination";
 
 function formatTs(ts: string | null | undefined) {
   if (!ts) return null;
@@ -1121,28 +1122,16 @@ export default function Manifest() {
         </div>
         {/* PAGINATION UI */}
         {totalPages > 1 && (
-          <div className="flex justify-between items-center px-6 py-4 bg-slate-50 border-t border-slate-200">
-            <span className="text-sm text-slate-500 font-medium">
-              Showing <span className="font-bold text-slate-700">{startIndex + 1}</span> to <span className="font-bold text-slate-700">{Math.min(startIndex + itemsPerPage, filteredShipments.length)}</span> of <span className="font-bold text-slate-700">{filteredShipments.length}</span> shipments
+          <div className="flex flex-col sm:flex-row justify-between items-center px-6 py-4 bg-slate-50 border-t border-slate-200 gap-4">
+            <span className="text-sm text-slate-500 font-medium whitespace-nowrap">
+              Total Shipments: <span className="font-bold text-slate-700">{filteredShipments.length}</span>
             </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 bg-white hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-              >
-                Previous
-              </button>
-              <div className="flex items-center justify-center px-4 font-bold text-slate-700 text-sm">
-                Page {currentPage} of {totalPages}
-              </div>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 bg-white hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-              >
-                Next
-              </button>
+            <div className="flex justify-end w-full sm:w-auto">
+              <Pagination 
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
             </div>
           </div>
         )}
