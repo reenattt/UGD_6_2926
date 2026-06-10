@@ -18,8 +18,8 @@ export interface AdminAccount {
 // Predefined list (mainly used for server components/fallback, client dynamic reads localStorage)
 export const USERS: Array<SessionUser & { password?: string }> = [
   {
-    username: "owner",
-    password: "owner123",
+    username: process.env.NEXT_PUBLIC_OWNER_USERNAME || "owner",
+    password: process.env.NEXT_PUBLIC_OWNER_PASSWORD,
     name: "Owner",
     email: "owner@skylink.com",
     role: "Owner"
@@ -28,8 +28,8 @@ export const USERS: Array<SessionUser & { password?: string }> = [
 
 const DEFAULT_ADMINS: AdminAccount[] = [
   {
-    username: "241712926",
-    password: "hajarsiweb",
+    username: process.env.NEXT_PUBLIC_ADMIN_USERNAME || "241712926",
+    password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD,
     name: "Operator Admin",
     email: "admin@petir.com",
     enabled: true
@@ -56,7 +56,10 @@ export function saveAdmins(admins: AdminAccount[]) {
 }
 
 export function verifyUser(username: string, password?: string): SessionUser | null {
-  if (username === "owner" && password === "owner123") {
+  const ownerUsername = process.env.NEXT_PUBLIC_OWNER_USERNAME || "owner";
+  const ownerPassword = process.env.NEXT_PUBLIC_OWNER_PASSWORD;
+
+  if (username === ownerUsername && password === ownerPassword) {
     return {
       username: "owner",
       name: "Owner",

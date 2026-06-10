@@ -3,7 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { getClientSession, clearClientSession, hasRoleAccess } from "../lib/auth";
-import { Bell, LayoutDashboard, Package, BarChart3, MapPinned, Users, LogOut } from "lucide-react";
+import { Bell, LayoutDashboard, Package, BarChart3, MapPinned, Users, LogOut, CheckCircle, Truck, AlertCircle, X } from "lucide-react";
 import { getProfile } from "../lib/profile";
 
 function RealTimeClock() {
@@ -42,9 +42,9 @@ export default function DashboardLayout({
 
   // Mock notifications
   const [notifications, setNotifications] = useState([
-    { id: 1, title: "AWB015 Arrived", time: "10m ago", read: false },
-    { id: 2, title: "AWB010 In Transit", time: "1h ago", read: false },
-    { id: 3, title: "AWB125 Manifested", time: "2h ago", read: true },
+    { id: 1, type: "Arrived", title: "AWB015 Arrived", desc: "Cargo successfully arrived", time: "10 min ago", read: false },
+    { id: 2, type: "In Transit", title: "AWB010 In Transit", desc: "Shipment moving to destination", time: "1 hour ago", read: false },
+    { id: 3, type: "Manifested", title: "AWB125 Manifested", desc: "Shipment created successfully", time: "2 hours ago", read: true },
   ]);
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -204,10 +204,10 @@ export default function DashboardLayout({
               <RealTimeClock />
             </div>
 
-            {/* Notification Dropdown Container */}
-            <div className="relative" ref={notifRef}>
+            {/* Notification Button */}
+            <div ref={notifRef}>
               <button 
-                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                onClick={() => setIsNotifOpen(true)}
                 className="relative p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all"
               >
                 <Bell className="w-5 h-5" />
@@ -215,41 +215,6 @@ export default function DashboardLayout({
                   <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
                 )}
               </button>
-
-              {/* Dropdown Panel */}
-              <div 
-                className={`absolute right-0 mt-3 w-[320px] bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden z-50 transition-all duration-200 origin-top-right ${isNotifOpen ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible'}`}
-              >
-                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-                  <span className="font-bold text-slate-800 text-sm">Notifications ({notifications.length})</span>
-                  {unreadCount > 0 && (
-                    <button 
-                      onClick={() => setNotifications(notifications.map(n => ({...n, read: true})))}
-                      className="text-xs text-blue-600 hover:text-blue-700 font-semibold transition-colors"
-                    >
-                      Mark all as read
-                    </button>
-                  )}
-                </div>
-                
-                <div className="max-h-[280px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
-                  {notifications.map((n) => (
-                    <div key={n.id} className={`px-4 py-2.5 border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer flex items-start gap-3 ${!n.read ? 'bg-blue-50/30' : ''}`}>
-                      {!n.read && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1.5 shadow-sm shadow-blue-400/50"></span>}
-                      <div className={`flex flex-col ${n.read ? 'ml-5' : ''}`}>
-                        <span className={`text-[13px] leading-tight ${!n.read ? 'font-semibold text-slate-900' : 'font-medium text-slate-600'}`}>{n.title}</span>
-                        <span className="text-[11px] text-slate-400 font-medium mt-1">{n.time}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="border-t border-slate-100 bg-white p-2 text-center">
-                  <button className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors w-full py-1">
-                    View All
-                  </button>
-                </div>
-              </div>
             </div>
 
             <div className="h-8 w-px bg-slate-200 mx-2"></div>
@@ -278,6 +243,83 @@ export default function DashboardLayout({
           {children}
         </div>
       </div>
+
+      {/* NOTIFICATION MODAL */}
+      {isNotifOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
+            onClick={() => setIsNotifOpen(false)}
+          ></div>
+          
+          <div className="relative bg-white/95 backdrop-blur-md w-full max-w-[420px] max-h-[500px] flex flex-col rounded-[20px] shadow-2xl shadow-slate-900/20 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white/50">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-slate-500" /> Notifications
+                </span>
+                {unreadCount > 0 && (
+                  <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-0.5 rounded-full ml-1">
+                    {unreadCount} new
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                {unreadCount > 0 && (
+                  <button 
+                    onClick={() => setNotifications(notifications.map(n => ({...n, read: true})))}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+                  >
+                    Mark all as read
+                  </button>
+                )}
+                <button 
+                  onClick={() => setIsNotifOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            {/* List */}
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 p-2">
+              {notifications.map((n) => {
+                let Icon = Package;
+                let iconColor = "text-orange-500 bg-orange-50";
+                
+                if (n.type === "Arrived") {
+                  Icon = CheckCircle;
+                  iconColor = "text-emerald-500 bg-emerald-50";
+                } else if (n.type === "In Transit") {
+                  Icon = Truck;
+                  iconColor = "text-blue-500 bg-blue-50";
+                } else if (n.type === "Delayed") {
+                  Icon = AlertCircle;
+                  iconColor = "text-red-500 bg-red-50";
+                }
+
+                return (
+                  <div key={n.id} className={`p-4 mx-2 my-1 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer flex items-start gap-4 ${!n.read ? 'bg-blue-50/30' : ''}`}>
+                    <div className={`p-2.5 rounded-full shrink-0 ${iconColor}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0 pt-0.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className={`text-sm truncate ${!n.read ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'}`}>{n.title}</span>
+                        {!n.read && <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0 mt-1 shadow-sm shadow-blue-400/50"></span>}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1 line-clamp-1">{n.desc}</p>
+                      <span className="block text-[11px] text-slate-400 font-medium mt-1.5">{n.time}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

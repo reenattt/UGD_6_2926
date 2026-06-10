@@ -295,6 +295,8 @@ export default function EditShipment() {
             <label className="text-sm font-semibold text-gray-700 mb-1">Weight</label>
             <input
               type="number"
+              step="any"
+              placeholder="Enter weight in kg"
               className={`border p-2 w-full bg-white text-slate-900 placeholder:text-slate-400 ${errors.weight ? "border-red-500" : ""}`}
               value={formData.weight}
               onChange={(e) => handleInputChange("weight", e.target.value)}

@@ -3,6 +3,9 @@ import postgres from "postgres";
 const sql = postgres(process.env.DATABASE_URL!, { ssl: "require" });
 
 export async function GET() {
+  if (process.env.NODE_ENV === "production") {
+    return Response.json({ error: "Forbidden in production" }, { status: 403 });
+  }
   try {
     // Alter columns to use timestamp with time zone (TIMESTAMPTZ)
     await sql`ALTER TABLE shipments ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'UTC'`;

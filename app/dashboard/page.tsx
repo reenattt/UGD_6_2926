@@ -189,9 +189,9 @@ export default function DashboardPage() {
 
   // ================= STATISTICS =================
   const totalShipments = shipments.length;
-  const deliveredCount = shipments.filter((item) => item.shipping_status === "Arrived").length;
+  const receivedCount = shipments.filter((item) => item.shipping_status === "Received").length;
   const delayedCount = shipments.filter((item) => item.shipping_status === "Delayed").length;
-  const inProgressCount = shipments.filter((item) => item.shipping_status !== "Arrived").length;
+  const inProgressCount = shipments.filter((item) => item.shipping_status === "Sortation").length;
   const totalRevenue = shipments.reduce((acc, item) => acc + Number(item.price || 0), 0);
 
   // ================= DAILY SHIPMENT DATA =================
@@ -280,8 +280,8 @@ export default function DashboardPage() {
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <svg className="w-16 h-16 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
           </div>
-          <p className="text-slate-500 text-sm font-semibold uppercase tracking-wider mb-2 relative z-10">Delivered</p>
-          <h2 className="text-4xl font-black text-emerald-600 relative z-10 tracking-tight">{deliveredCount}</h2>
+          <p className="text-slate-500 text-sm font-semibold uppercase tracking-wider mb-2 relative z-10">Received</p>
+          <h2 className="text-4xl font-black text-emerald-600 relative z-10 tracking-tight">{receivedCount}</h2>
         </div>
         <div className="bg-white p-7 rounded-2xl shadow-md shadow-slate-200/40 border border-slate-100 hover:shadow-xl hover:shadow-slate-200/60 hover:-translate-y-1.5 transition-all duration-300 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">

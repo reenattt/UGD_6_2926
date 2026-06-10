@@ -36,7 +36,15 @@ export async function GET(request: Request) {
 
     return Response.json({
       found: true,
-      shipment: shipment[0],
+      shipment: {
+        awb: shipment[0].awb,
+        origin_city: shipment[0].origin_city,
+        destination_city: shipment[0].destination_city,
+        item_type: shipment[0].item_type,
+        weight: shipment[0].weight,
+        shipping_status: shipment[0].shipping_status,
+        shipping_type: shipment[0].shipping_type
+      },
       logs: trackingLogs,
     });
 

@@ -540,28 +540,29 @@ export default function Manifest() {
 
     if (!confirmDelete) return;
 
-    await fetch("/api/delete-shipment", {
+    try {
+      const response = await fetch("/api/delete-shipment", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: shipment.id,
+        }),
+      });
 
-      method: "DELETE",
-
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify({
-
-        id: shipment.id,
-
-      }),
-
-    });
-
-    const updated = shipments.filter(
-      (_, i) => i !== index
-    );
-
-    setShipments(updated);
-
+      if (response.ok) {
+        const updated = shipments.filter(
+          (_, i) => i !== index
+        );
+        setShipments(updated);
+      } else {
+        const err = await response.json();
+        alert(err.error || "Failed to delete shipment");
+      }
+    } catch (error) {
+      alert("Network error: Failed to delete shipment");
+    }
   };
 
   // ================= SEARCH =================
@@ -587,6 +588,15 @@ export default function Manifest() {
     );
 
   const totalPages = Math.ceil(filteredShipments.length / itemsPerPage);
+  
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    } else if (totalPages === 0 && currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedShipments = filteredShipments.slice(startIndex, startIndex + itemsPerPage);
 
@@ -863,6 +873,7 @@ export default function Manifest() {
                   <label className="text-sm font-semibold text-slate-700 mb-2">Weight (kg)</label>
                   <input
                     type="number"
+                    step="any"
                     placeholder="e.g. 5.5"
                     value={form.weight}
                     onChange={(e) => {
