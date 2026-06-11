@@ -37,13 +37,8 @@ export async function GET(request: Request) {
     return Response.json({
       found: true,
       shipment: {
-        awb: shipment[0].awb,
-        origin_city: shipment[0].origin_city,
-        destination_city: shipment[0].destination_city,
-        item_type: shipment[0].item_type,
-        weight: shipment[0].weight,
-        shipping_status: shipment[0].shipping_status,
-        shipping_type: shipment[0].shipping_type
+        ...shipment[0],
+        flight_id: "FL-" + shipment[0].vehicle_id
       },
       logs: trackingLogs,
     });

@@ -275,6 +275,9 @@ export default function Manifest() {
     if (!form.phone?.trim()) newErrors.phone = "Phone Number is required";
     if (!form.origin?.trim()) newErrors.origin = "Origin Airport is required";
     if (!form.destination?.trim()) newErrors.destination = "Destination Airport is required";
+    if (form.origin && form.destination && form.origin === form.destination) {
+      newErrors.destination = "Origin Airport and Destination Airport must be different locations.";
+    }
     if (!form.commodity?.trim()) newErrors.commodity = "Item Type is required";
 
     if (!form.weight?.trim()) {
@@ -434,6 +437,9 @@ export default function Manifest() {
     if (!form.phone?.trim()) newErrors.phone = "Phone Number is required";
     if (!form.origin?.trim()) newErrors.origin = "Origin City is required";
     if (!form.destination?.trim()) newErrors.destination = "Destination City is required";
+    if (form.origin && form.destination && form.origin === form.destination) {
+      newErrors.destination = "Origin Airport and Destination Airport must be different locations.";
+    }
     if (!form.commodity?.trim()) newErrors.commodity = "Item Type is required";
 
     if (!form.weight?.trim()) {
@@ -811,7 +817,9 @@ export default function Manifest() {
                   <div>
                     <label className="text-sm font-semibold text-slate-700 mb-2 block">Origin Airport</label>
                     <SearchableSelect
-                      options={Object.values(AIRPORT_MASTER_DATA).map(apt => ({ label: `${apt.code} - ${apt.city}`, value: `${apt.code} - ${apt.city}` }))}
+                      options={Object.values(AIRPORT_MASTER_DATA)
+                        .map(apt => ({ label: `${apt.code} - ${apt.city}`, value: `${apt.code} - ${apt.city}` }))
+                        .filter(opt => opt.value !== form.destination)}
                       value={form.origin}
                       onChange={(val) => {
                         setForm({ ...form, origin: val });
@@ -830,7 +838,9 @@ export default function Manifest() {
                   <div>
                     <label className="text-sm font-semibold text-slate-700 mb-2 block">Destination Airport</label>
                     <SearchableSelect
-                      options={Object.values(AIRPORT_MASTER_DATA).map(apt => ({ label: `${apt.code} - ${apt.city}`, value: `${apt.code} - ${apt.city}` }))}
+                      options={Object.values(AIRPORT_MASTER_DATA)
+                        .map(apt => ({ label: `${apt.code} - ${apt.city}`, value: `${apt.code} - ${apt.city}` }))
+                        .filter(opt => opt.value !== form.origin)}
                       value={form.destination}
                       onChange={(val) => {
                         setForm({ ...form, destination: val });

@@ -101,6 +101,9 @@ export default function EditShipment() {
     if (!formData.phone.trim()) newErrors.phone = "Phone Number is required";
     if (!formData.origin_city.trim()) newErrors.origin_city = "Origin City is required";
     if (!formData.destination_city.trim()) newErrors.destination_city = "Destination City is required";
+    if (formData.origin_city && formData.destination_city && formData.origin_city === formData.destination_city) {
+      newErrors.destination_city = "Origin Airport and Destination Airport must be different locations.";
+    }
     if (!formData.item_type.trim()) newErrors.item_type = "Item Type is required";
 
     if (!formData.weight.trim()) {
@@ -214,7 +217,9 @@ export default function EditShipment() {
           <div className="flex flex-col">
             <label className="text-sm font-semibold text-gray-700 mb-1">Origin City</label>
             <SearchableSelect
-              options={Object.values(AIRPORT_MASTER_DATA).map(apt => ({ label: `${apt.code} - ${apt.city}`, value: `${apt.code} - ${apt.city}` }))}
+              options={Object.values(AIRPORT_MASTER_DATA)
+                .map(apt => ({ label: `${apt.code} - ${apt.city}`, value: `${apt.code} - ${apt.city}` }))
+                .filter(opt => opt.value !== formData.destination_city)}
               value={formData.origin_city}
               onChange={(val) => handleInputChange("origin_city", val)}
               placeholder="Select Origin Airport..."
@@ -264,7 +269,9 @@ export default function EditShipment() {
           <div className="flex flex-col">
             <label className="text-sm font-semibold text-gray-700 mb-1">Destination City</label>
             <SearchableSelect
-              options={Object.values(AIRPORT_MASTER_DATA).map(apt => ({ label: `${apt.code} - ${apt.city}`, value: `${apt.code} - ${apt.city}` }))}
+              options={Object.values(AIRPORT_MASTER_DATA)
+                .map(apt => ({ label: `${apt.code} - ${apt.city}`, value: `${apt.code} - ${apt.city}` }))
+                .filter(opt => opt.value !== formData.origin_city)}
               value={formData.destination_city}
               onChange={(val) => handleInputChange("destination_city", val)}
               placeholder="Select Destination Airport..."
