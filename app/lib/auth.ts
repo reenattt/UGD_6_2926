@@ -55,33 +55,6 @@ export function saveAdmins(admins: AdminAccount[]) {
   localStorage.setItem("skylink_admins", JSON.stringify(admins));
 }
 
-export function verifyUser(username: string, password?: string): SessionUser | null {
-  const ownerUsername = process.env.NEXT_PUBLIC_OWNER_USERNAME || "owner";
-  const ownerPassword = process.env.NEXT_PUBLIC_OWNER_PASSWORD;
-
-  if (username === ownerUsername && password === ownerPassword) {
-    return {
-      username: "owner",
-      name: "Owner",
-      email: "owner@skylink.com",
-      role: "Owner"
-    };
-  }
-
-  const admins = getAdmins();
-  const admin = admins.find(
-    (a) => a.username === username && a.password === password && a.enabled
-  );
-  if (admin) {
-    return {
-      username: admin.username,
-      name: admin.name,
-      email: admin.email,
-      role: "Admin"
-    };
-  }
-  return null;
-}
 
 export function getClientSession(): SessionUser | null {
   if (typeof window === "undefined") return null;

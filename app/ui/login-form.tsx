@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { verifyUser, setClientSession } from "../lib/auth";
+import { setClientSession } from "../lib/auth";
+import { verifyUserAction } from "../lib/auth-actions";
 import { Eye, EyeOff } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -40,7 +41,7 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
     return () => clearInterval(timer);
   }, [lockoutTimer, failedAttempts]);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const newErrors: Record<string, string> = {};
 
     if (!username.trim()) {
@@ -55,7 +56,7 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
       return;
     }
 
-    const sessionUser = verifyUser(username, password);
+    const sessionUser = await verifyUserAction(username, password);
 
     if (sessionUser) {
       if (rememberMe) {
