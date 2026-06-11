@@ -6,7 +6,7 @@ import { ITEM_CATEGORIES, SHIPMENT_STATUSES } from "../lib/definitions";
 import { AIRPORT_MASTER_DATA, resolveAirport } from "../lib/airports";
 import { SearchableSelect } from "../ui/searchable-select";
 import { StatusBadge } from "../ui/status-badge";
-import { X } from "lucide-react";
+import { X, AlertTriangle } from "lucide-react";
 import { Pagination } from "../ui/pagination";
 
 function formatTs(ts: string | null | undefined) {
@@ -165,6 +165,26 @@ export default function Manifest() {
 
   const [showForm, setShowForm] = useState(false);
   const [awbPopup, setAwbPopup] = useState<any>(null);
+
+  const [toastState, setToastState] = useState<{isOpen: boolean, message: string, type: 'success' | 'error' | null}>({isOpen: false, message: "", type: null});
+  const [deleteModalState, setDeleteModalState] = useState<{isOpen: boolean, index: number | null, awb: string}>({isOpen: false, index: null, awb: ""});
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && deleteModalState.isOpen) {
+        setDeleteModalState({ isOpen: false, index: null, awb: "" });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [deleteModalState.isOpen]);
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToastState({ isOpen: true, message, type });
+    setTimeout(() => {
+      setToastState(prev => prev.message === message ? { ...prev, isOpen: false } : prev);
+    }, 3000);
+  };
 
   const [editingIndex, setEditingIndex] =
     useState<number | null>(null);
@@ -518,12 +538,15 @@ export default function Manifest() {
         setEditingIndex(null);
         setErrors({});
         setGeneralError("");
+        showToast(`✅ Shipment ${result.data.awb} updated successfully`, 'success');
 
       } else {
         setGeneralError(result.error || "Failed to update shipment");
+        showToast("❌ Failed to update shipment", 'error');
       }
     } catch (err: any) {
       setGeneralError(err.message || "Failed to update shipment");
+      showToast("❌ Failed to update shipment", 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -532,17 +555,19 @@ export default function Manifest() {
 
   // ================= DELETE =================
 
-  const handleDelete = async (
+  const handleDelete = (
     index: number
   ) => {
+    const shipment = shipments[index];
+    setDeleteModalState({ isOpen: true, index, awb: shipment.awb });
+  };
 
+  const confirmDeleteAction = async () => {
+    const index = deleteModalState.index;
+    if (index === null) return;
     const shipment = shipments[index];
 
-    const confirmDelete = window.confirm(
-      `Delete shipment ${shipment.awb}?`
-    );
-
-    if (!confirmDelete) return;
+    setDeleteModalState({ isOpen: false, index: null, awb: "" });
 
     try {
       const response = await fetch("/api/delete-shipment", {
@@ -560,12 +585,12 @@ export default function Manifest() {
           (_, i) => i !== index
         );
         setShipments(updated);
+        showToast(`✅ Shipment ${shipment.awb} deleted successfully`, 'success');
       } else {
-        const err = await response.json();
-        alert(err.error || "Failed to delete shipment");
+        showToast("❌ Failed to delete shipment", 'error');
       }
     } catch (error) {
-      alert("Network error: Failed to delete shipment");
+      showToast("❌ Failed to delete shipment", 'error');
     }
   };
 
@@ -1158,6 +1183,48 @@ export default function Manifest() {
 
       {/* AWB DETAIL POPUP */}
       {awbPopup && <AWBDetailModal shipment={awbPopup} onClose={() => setAwbPopup(null)} />}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {deleteModalState.isOpen && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300"
+          onClick={(e) => { if (e.target === e.currentTarget) setDeleteModalState({ isOpen: false, index: null, awb: "" }); }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative transform scale-100 transition-all border border-slate-100 overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <AlertTriangle size={32} strokeWidth={2.5} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Delete Shipment</h3>
+              <p className="text-sm font-semibold text-slate-700 mb-1">AWB: {deleteModalState.awb}</p>
+              <p className="text-sm text-slate-500 mb-6">Are you sure you want to delete this shipment?<br/>This action cannot be undone.</p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setDeleteModalState({ isOpen: false, index: null, awb: "" })}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmDeleteAction}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition-all shadow-md shadow-red-600/20"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST NOTIFICATION */}
+      {toastState.isOpen && (
+        <div className="fixed top-6 right-6 z-[9999] transform transition-all duration-300 translate-y-0 opacity-100">
+          <div className={`px-5 py-3.5 rounded-xl shadow-xl border font-semibold text-sm ${toastState.type === 'success' ? 'bg-white border-green-100 text-slate-800' : 'bg-white border-red-100 text-slate-800'}`}>
+            {toastState.message}
+          </div>
+        </div>
+      )}
 
     </DashboardLayout>
 
