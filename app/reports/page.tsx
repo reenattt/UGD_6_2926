@@ -29,6 +29,9 @@ export default function ReportsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const [selectedShipment, setSelectedShipment] = useState<any>(null);
+  const [isPrintingIndividual, setIsPrintingIndividual] = useState(false);
+
   useEffect(() => {
     fetch("/api/shipments")
       .then((res) => res.json())
@@ -92,8 +95,28 @@ export default function ReportsPage() {
 
   const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  const currentMonthFiltered = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return filtered.filter(item => {
+      if (!item.created_at) return false;
+      const d = new Date(item.created_at);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+  }, [filtered]);
+
   const handlePrint = () => {
     window.print();
+  };
+
+  const handlePrintIndividual = () => {
+    setIsPrintingIndividual(true);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => setIsPrintingIndividual(false), 500);
+    }, 100);
   };
 
   const SortIcon = ({ col }: { col: SortKey }) => {
@@ -111,10 +134,15 @@ export default function ReportsPage() {
       <style>{`
         @media print {
           body * { visibility: hidden; }
-          #print-area, #print-area * { visibility: visible; }
-          #print-area { position: absolute; top: 0; left: 0; width: 100%; }
+          ${isPrintingIndividual 
+            ? `#print-individual-area, #print-individual-area * { visibility: visible; }
+               #print-individual-area { position: absolute; top: 0; left: 0; width: 100%; }`
+            : `#print-area, #print-area * { visibility: visible; }
+               #print-area { position: absolute; top: 0; left: 0; width: 100%; }`
+          }
           #no-print { display: none !important; }
           .print\\:block { display: block !important; }
+          .print\\:hidden { display: none !important; }
         }
       `}</style>
 
@@ -182,7 +210,7 @@ export default function ReportsPage() {
         </div>
 
         {/* TABLE */}
-        <div className="bg-white rounded-2xl shadow-md shadow-slate-200/40 border border-slate-100 overflow-hidden transition-all hover:shadow-lg">
+        <div className="print:hidden bg-white rounded-2xl shadow-md shadow-slate-200/40 border border-slate-100 overflow-hidden transition-all hover:shadow-lg">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50 border-b border-slate-200">
@@ -227,7 +255,14 @@ export default function ReportsPage() {
                     const updated = formatTimestamp(item.updated_at);
                     return (
                       <tr key={i} className="hover:bg-blue-50/40 transition-colors duration-200 group">
-                        <td className="px-4 py-3 font-bold text-slate-900 whitespace-nowrap font-mono">{item.awb}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <button
+                            onClick={() => setSelectedShipment(item)}
+                            className="font-bold font-mono text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors text-left"
+                          >
+                            {item.awb}
+                          </button>
+                        </td>
                         <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{item.sender_name}</td>
                         <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{item.receiver_name}</td>
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -239,7 +274,7 @@ export default function ReportsPage() {
                         </td>
                         <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{item.item_type}</td>
                         <td className="px-4 py-3 text-slate-700 font-semibold whitespace-nowrap">{item.weight} kg</td>
-                        <td className="px-4 py-3 font-bold text-slate-900 whitespace-nowrap">Rp {Number(item.price).toLocaleString("id-ID")}</td>
+                        <td className="px-4 py-3 font-bold text-slate-900 whitespace-nowrap">Rp {(Number(item.price) || 0).toLocaleString("id-ID")}</td>
                         <td className="px-4 py-3 text-center whitespace-nowrap">
                           <StatusBadge status={item.shipping_status} />
                         </td>
@@ -280,11 +315,163 @@ export default function ReportsPage() {
           )}
         </div>
 
+        {/* PRINT TABLE (All Current Month Records) */}
+        <div className="hidden print:block mt-6">
+          <table className="w-full text-xs text-left border-collapse border border-slate-800">
+            <thead className="bg-slate-100 border-b-2 border-slate-800">
+              <tr>
+                <th className="border border-slate-800 px-2 py-1">AWB</th>
+                <th className="border border-slate-800 px-2 py-1">Sender</th>
+                <th className="border border-slate-800 px-2 py-1">Receiver</th>
+                <th className="border border-slate-800 px-2 py-1">Origin</th>
+                <th className="border border-slate-800 px-2 py-1">Dest</th>
+                <th className="border border-slate-800 px-2 py-1">Weight</th>
+                <th className="border border-slate-800 px-2 py-1">Aircraft</th>
+                <th className="border border-slate-800 px-2 py-1">Type</th>
+                <th className="border border-slate-800 px-2 py-1">Status</th>
+                <th className="border border-slate-800 px-2 py-1">Date</th>
+                <th className="border border-slate-800 px-2 py-1">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentMonthFiltered.map((item, i) => (
+                <tr key={i}>
+                  <td className="border border-slate-800 px-2 py-1 font-mono font-bold">{item.awb}</td>
+                  <td className="border border-slate-800 px-2 py-1">{item.sender_name}</td>
+                  <td className="border border-slate-800 px-2 py-1">{item.receiver_name}</td>
+                  <td className="border border-slate-800 px-2 py-1">{item.origin_city}</td>
+                  <td className="border border-slate-800 px-2 py-1">{item.destination_city}</td>
+                  <td className="border border-slate-800 px-2 py-1">{item.weight} kg</td>
+                  <td className="border border-slate-800 px-2 py-1">{item.vehicle_id ? `SL-${String(item.vehicle_id).padStart(3, '0')}` : "—"}</td>
+                  <td className="border border-slate-800 px-2 py-1">{item.shipping_type}</td>
+                  <td className="border border-slate-800 px-2 py-1">{item.shipping_status}</td>
+                  <td className="border border-slate-800 px-2 py-1">{formatTimestamp(item.created_at).date}</td>
+                  <td className="border border-slate-800 px-2 py-1">Rp {(Number(item.price) || 0).toLocaleString("id-ID")}</td>
+                </tr>
+              ))}
+              {currentMonthFiltered.length === 0 && (
+                <tr>
+                  <td colSpan={11} className="border border-slate-800 px-2 py-4 text-center">No matching records found for the current month.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
         {/* PRINT SUMMARY */}
         <div className="hidden print:block mt-8 text-center text-xs text-slate-400 border-t border-slate-200 pt-4">
           Sky Link Cargo Information System · Confidential · Generated by automated system
         </div>
       </div>
+
+      {/* SHIPMENT DETAIL MODAL */}
+      {selectedShipment && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div id="print-individual-area" className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 print:shadow-none print:w-full print:max-w-none">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 print:bg-transparent print:border-slate-800 print:border-b-2">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800 tracking-tight print:text-2xl">Shipment Detail</h2>
+                <p className="text-slate-500 text-sm font-mono mt-1 print:hidden">{selectedShipment.awb}</p>
+              </div>
+              <div id="no-print" className="flex gap-3">
+                {selectedShipment.shipping_status === "Received" && (
+                  <button 
+                    onClick={handlePrintIndividual}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg font-semibold hover:bg-slate-800 transition-all text-sm"
+                  >
+                    <Printer size={14} /> Print Shipment
+                  </button>
+                )}
+                <button 
+                  onClick={() => setSelectedShipment(null)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+                >
+                  <span className="sr-only">Close</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              {/* Layout for print vs screen */}
+              <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                <div>
+                  <span className="block text-slate-400 font-bold uppercase text-xs mb-1">AWB Number</span>
+                  <span className="font-bold text-slate-900 font-mono text-base">{selectedShipment.awb}</span>
+                </div>
+                <div>
+                  <span className="block text-slate-400 font-bold uppercase text-xs mb-1">Current Status</span>
+                  <div className="print:hidden">
+                    <StatusBadge status={selectedShipment.shipping_status} />
+                  </div>
+                  <div className="hidden print:block font-bold text-slate-900">{selectedShipment.shipping_status}</div>
+                </div>
+
+                <div className="col-span-2 border-t border-slate-100 pt-4 print:border-slate-300"></div>
+
+                <div>
+                  <span className="block text-slate-400 font-bold uppercase text-xs mb-1">Sender</span>
+                  <span className="font-semibold text-slate-800">{selectedShipment.sender_name}</span>
+                </div>
+                <div>
+                  <span className="block text-slate-400 font-bold uppercase text-xs mb-1">Receiver</span>
+                  <span className="font-semibold text-slate-800">{selectedShipment.receiver_name}</span>
+                </div>
+
+                <div>
+                  <span className="block text-slate-400 font-bold uppercase text-xs mb-1">Origin Airport</span>
+                  <span className="font-medium text-slate-700">{selectedShipment.origin_city}</span>
+                </div>
+                <div>
+                  <span className="block text-slate-400 font-bold uppercase text-xs mb-1">Destination Airport</span>
+                  <span className="font-medium text-slate-700">{selectedShipment.destination_city}</span>
+                </div>
+
+                <div className="col-span-2 border-t border-slate-100 pt-4 print:border-slate-300"></div>
+
+                <div>
+                  <span className="block text-slate-400 font-bold uppercase text-xs mb-1">Weight & Type</span>
+                  <span className="font-medium text-slate-700">{selectedShipment.weight} kg — {selectedShipment.item_type}</span>
+                </div>
+                <div>
+                  <span className="block text-slate-400 font-bold uppercase text-xs mb-1">Aircraft</span>
+                  <span className="font-medium text-slate-700">{selectedShipment.vehicle_id ? `SL-${String(selectedShipment.vehicle_id).padStart(3, '0')}` : "Not Assigned"}</span>
+                </div>
+
+                <div>
+                  <span className="block text-slate-400 font-bold uppercase text-xs mb-1">Shipping Type</span>
+                  <span className="font-medium text-slate-700">{selectedShipment.shipping_type}</span>
+                </div>
+                <div>
+                  <span className="block text-slate-400 font-bold uppercase text-xs mb-1">Shipping Price</span>
+                  <span className="font-bold text-slate-900">Rp {(Number(selectedShipment.price) || 0).toLocaleString("id-ID")}</span>
+                </div>
+
+                <div className="col-span-2 border-t border-slate-100 pt-4 print:border-slate-300"></div>
+
+                <div>
+                  <span className="block text-slate-400 font-bold uppercase text-xs mb-1">Created Date</span>
+                  <span className="font-medium text-slate-700">
+                    {formatTimestamp(selectedShipment.created_at).date} {formatTimestamp(selectedShipment.created_at).time}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-slate-400 font-bold uppercase text-xs mb-1">Updated Date</span>
+                  <span className="font-medium text-slate-700">
+                    {formatTimestamp(selectedShipment.updated_at).date} {formatTimestamp(selectedShipment.updated_at).time}
+                  </span>
+                </div>
+
+              </div>
+              <div className="hidden print:block mt-8 text-center text-xs text-slate-400 border-t border-slate-800 pt-4">
+                Sky Link Cargo Information System · Generated by automated system
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

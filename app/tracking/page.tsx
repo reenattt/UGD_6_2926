@@ -85,6 +85,22 @@ export default function Tracking() {
         setShipment(data.shipment);
         setLogs(data.logs || []);
         setStatus("found");
+
+        // Auto-scroll to tracking result with subtle highlight
+        setTimeout(() => {
+          const el = document.getElementById("tracking-result");
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+            
+            const card = document.getElementById("tracking-card");
+            if (card) {
+              card.classList.add("ring-4", "ring-blue-400/50");
+              setTimeout(() => {
+                card.classList.remove("ring-4", "ring-blue-400/50");
+              }, 1500);
+            }
+          }
+        }, 100);
       } else {
         setStatus("notfound");
         setShipment(null);
@@ -231,10 +247,10 @@ export default function Tracking() {
       {/* SHIPMENT INFO + TIMELINE                                     */}
       {/* ============================================================ */}
       {status === "found" && shipment && (
-        <div className="space-y-6 animate-fadeIn">
+        <div id="tracking-result" className="space-y-6 animate-fadeIn">
 
           {/* SHIPMENT INFO */}
-          <div className="bg-white p-8 rounded-2xl shadow-md shadow-slate-200/40 border border-slate-100 transition-all hover:shadow-lg">
+          <div id="tracking-card" className="bg-white p-8 rounded-2xl shadow-md shadow-slate-200/40 border border-slate-100 transition-all duration-1000 hover:shadow-lg">
             <h2 className="text-xl font-bold mb-6 text-slate-800 flex items-center gap-3 tracking-tight">
               <span className="p-2 bg-blue-50 rounded-lg text-blue-600">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,7 +272,7 @@ export default function Tracking() {
                 </div>
                 <div>
                   <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-1">Total Price</span>
-                  <span className="font-bold text-slate-900 text-lg">Rp {Number(shipment.price).toLocaleString("id-ID")}</span>
+                  <span className="font-bold text-slate-900 text-lg">Rp {(Number(shipment.price) || 0).toLocaleString("id-ID")}</span>
                 </div>
               </div>
 
@@ -265,14 +281,14 @@ export default function Tracking() {
                   <span className="absolute left-[3px] top-1.5 w-3 h-3 rounded-full border-2 border-slate-300 bg-white"></span>
                   <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-1">Origin / Sender</span>
                   <span className="font-bold text-slate-800 text-base block">{shipment.origin_city}</span>
-                  {shipment.origin_lat && <span className="text-slate-500 font-mono text-xs block mb-1">{Number(shipment.origin_lat).toFixed(4)}°, {Number(shipment.origin_lng).toFixed(4)}°</span>}
+                  {shipment.origin_lat && <span className="text-slate-500 font-mono text-xs block mb-1">{(Number(shipment.origin_lat) || 0).toFixed(4)}°, {(Number(shipment.origin_lng) || 0).toFixed(4)}°</span>}
                   <span className="text-slate-500 font-medium">{shipment.sender_name}</span>
                 </div>
                 <div className="relative pl-6">
                   <span className="absolute left-[3px] top-1.5 w-3 h-3 rounded-full border-2 border-blue-500 bg-white"></span>
                   <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-1">Destination / Receiver</span>
                   <span className="font-bold text-slate-800 text-base block">{shipment.destination_city}</span>
-                  {shipment.dest_lat && <span className="text-slate-500 font-mono text-xs block mb-1">{Number(shipment.dest_lat).toFixed(4)}°, {Number(shipment.dest_lng).toFixed(4)}°</span>}
+                  {shipment.dest_lat && <span className="text-slate-500 font-mono text-xs block mb-1">{(Number(shipment.dest_lat) || 0).toFixed(4)}°, {(Number(shipment.dest_lng) || 0).toFixed(4)}°</span>}
                   <span className="text-slate-500 font-medium">{shipment.receiver_name}</span>
                 </div>
               </div>

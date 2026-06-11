@@ -22,8 +22,8 @@ function RealTimeClock() {
 const navItems = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Shipments", path: "/manifest", icon: Package },
-  { label: "Reports", path: "/reports", icon: BarChart3 },
   { label: "Tracking", path: "/tracking", icon: MapPinned },
+  { label: "Reports", path: "/reports", icon: BarChart3 },
 ];
 
 export default function DashboardLayout({

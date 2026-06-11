@@ -389,7 +389,7 @@ export default function Page() {
                   
                   {result.origin_lat && (
                     <p className="text-sm text-gray-500 font-mono mt-1">
-                      {Number(result.origin_lat).toFixed(4)}°, {Number(result.origin_lng).toFixed(4)}°
+                      {(Number(result.origin_lat) || 0).toFixed(4)}°, {(Number(result.origin_lng) || 0).toFixed(4)}°
                     </p>
                   )}
 
@@ -407,7 +407,7 @@ export default function Page() {
                   
                   {result.dest_lat && (
                     <p className="text-sm text-gray-500 font-mono mt-1">
-                      {Number(result.dest_lat).toFixed(4)}°, {Number(result.dest_lng).toFixed(4)}°
+                      {(Number(result.dest_lat) || 0).toFixed(4)}°, {(Number(result.dest_lng) || 0).toFixed(4)}°
                     </p>
                   )}
 
@@ -504,7 +504,7 @@ export default function Page() {
                   <h2 className="text-orange-400 text-4xl font-bold">
 
                     Rp
-                    {Number(result.price).toLocaleString("id-ID")}
+                    {(Number(result.price) || 0).toLocaleString("id-ID")}
 
                   </h2>
 

@@ -125,7 +125,7 @@ function AWBDetailModal({ shipment, onClose }: { shipment: any; onClose: () => v
             </div>
             <div className="bg-slate-50 rounded-xl p-3 text-center">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Price</p>
-              <p className="font-bold text-emerald-700 text-sm">Rp {Number(shipment.price).toLocaleString("id-ID")}</p>
+              <p className="font-bold text-emerald-700 text-sm">Rp {(Number(shipment.price) || 0).toLocaleString("id-ID")}</p>
             </div>
           </div>
 
@@ -192,7 +192,7 @@ export default function DashboardPage() {
   const receivedCount = shipments.filter((item) => item.shipping_status === "Received").length;
   const delayedCount = shipments.filter((item) => item.shipping_status === "Delayed").length;
   const inProgressCount = shipments.filter((item) => item.shipping_status === "Sortation").length;
-  const totalRevenue = shipments.reduce((acc, item) => acc + Number(item.price || 0), 0);
+  const totalRevenue = shipments.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
 
   // ================= DAILY SHIPMENT DATA =================
   const dailyShipmentMap: Record<string, { date: string; total: number; timestamp: number }> = {};
@@ -457,7 +457,7 @@ export default function DashboardPage() {
                         <StatusBadge status={item.shipping_status} />
                       </td>
                       <td className="px-5 py-4 font-bold text-slate-900 whitespace-nowrap">
-                        Rp {Number(item.price).toLocaleString("id-ID")}
+                        Rp {(Number(item.price) || 0).toLocaleString("id-ID")}
                       </td>
                       {/* TIMESTAMP COLUMN */}
                       <td className="px-5 py-4 whitespace-nowrap">

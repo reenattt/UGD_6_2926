@@ -72,7 +72,7 @@ function AWBDetailModal({ shipment, onClose }: { shipment: any; onClose: () => v
               </div>
               <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Price</p>
-                <p className="font-bold text-slate-800 text-sm">Rp {Number(shipment.price).toLocaleString("id-ID")}</p>
+                <p className="font-bold text-slate-800 text-sm">Rp {(Number(shipment.price) || 0).toLocaleString("id-ID")}</p>
               </div>
               <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Shipment Type</p>
@@ -234,13 +234,11 @@ export default function Manifest() {
 
     }
 
-    const numbers = shipments.map((item) =>
-
-      Number(
-        item.awb.replace("AWB", "")
-      )
-
-    );
+    const numbers = shipments.map((item) => {
+      if (!item?.awb || typeof item.awb !== "string") return 0;
+      const match = item.awb.match(/^AWB(\d+)$/);
+      return match ? Number(match[1]) : 0;
+    });
 
     const maxNumber = Math.max(...numbers);
 

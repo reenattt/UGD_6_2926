@@ -135,10 +135,10 @@ export default function TrackingMap({ shipment, compact = false, globalShipments
         progress: (idNum % 100) / 100, // pseudo-random deterministic start
         speed: 0.00015 + ((idNum % 10) * 0.000015), // deterministic speed variation
         color: colors[idNum % colors.length],
-        origLat: Number(s.origin_lat),
-        origLng: Number(s.origin_lng),
-        destLat: Number(s.dest_lat),
-        destLng: Number(s.dest_lng),
+        origLat: Number(s.origin_lat) || 0,
+        origLng: Number(s.origin_lng) || 0,
+        destLat: Number(s.dest_lat) || 0,
+        destLng: Number(s.dest_lng) || 0,
       };
     });
     
@@ -378,10 +378,10 @@ export default function TrackingMap({ shipment, compact = false, globalShipments
 
     // Fly map to route bounds
     if (shipment.origin_lat && shipment.dest_lat && mapRef.current) {
-      const origLat = Number(shipment.origin_lat);
-      const origLng = Number(shipment.origin_lng);
-      const destLat = Number(shipment.dest_lat);
-      const destLng = Number(shipment.dest_lng);
+      const origLat = Number(shipment.origin_lat) || 0;
+      const origLng = Number(shipment.origin_lng) || 0;
+      const destLat = Number(shipment.dest_lat) || 0;
+      const destLng = Number(shipment.dest_lng) || 0;
       
       const bounds = [
         [Math.min(origLat, destLat) - 1, Math.min(origLng, destLng) - 2],

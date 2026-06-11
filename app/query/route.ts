@@ -18,6 +18,10 @@ async function listTracking() {
 }
 
 export async function GET() {
+  if (process.env.NODE_ENV === "production") {
+    return Response.json({ error: "Forbidden in production" }, { status: 403 });
+  }
+
   try {
     return Response.json(await listTracking());
   } catch (error) {
